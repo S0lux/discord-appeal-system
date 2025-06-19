@@ -1,0 +1,25 @@
+{
+  "name": "panel",
+  "description": "Commands related to panels",
+  "options": [
+    {
+      "name": "create",
+      "description": "Create a panel where this command is used",
+      "type": 1,
+      "options": [
+        {
+          "name": "type",
+          "description": "Type of embed to create",
+          "type": 3,
+          "required": true,
+          "choices": [
+            {
+              "name": "crossroads",
+              "value": "crossroads"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
