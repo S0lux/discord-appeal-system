@@ -10,3 +10,14 @@ spring:
     username: ${POSTGRES_USER:appeal_system_user}
     password: ${POSTGRES_PASSWORD:appeal_system_password}
     url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/appeal_system_db}
+
+appeal-system:
+  games:
+    - name:
+      crossroad-description:
+        -
+        -
+        -
+      image:
+      appeal-server-id:
+      community-server-id:

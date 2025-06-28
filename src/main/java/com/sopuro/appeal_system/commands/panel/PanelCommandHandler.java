@@ -1,6 +1,8 @@
 package com.sopuro.appeal_system.commands.panel;
 
 import com.sopuro.appeal_system.commands.SlashCommand;
+import com.sopuro.appeal_system.configs.AppealSystemConfig;
+import com.sopuro.appeal_system.dtos.GameConfigDto;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
@@ -20,9 +22,10 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class PanelCommandHandler implements SlashCommand {
     private final GatewayDiscordClient gatewayDiscordClient;
+    private final AppealSystemConfig appealSystemConfig;
 
-    public static final String CROSSROADS_DISCORD_BTN = "crossroads:discord_btn";
-    public static final String CROSSROADS_IN_GAME_BTN = "crossroads:in-game_btn";
+    public static final String CROSSROADS_DISCORD_BTN_PREFIX = "crossroads:discord_btn_";
+    public static final String CROSSROADS_IN_GAME_BTN_PREFIX = "crossroads:in-game_btn_";
 
     @Override
     public String getName() {
@@ -45,6 +48,9 @@ public class PanelCommandHandler implements SlashCommand {
     private Mono<Void> handleCreatePanel(ChatInputInteractionEvent event) {
         Snowflake invokerId = event.getUser().getId();
         Snowflake channelId = event.getInteraction().getChannelId();
+        Snowflake guildId = event.getInteraction().getGuildId()
+                .orElseThrow(() -> new IllegalStateException("Guild ID is not present in the interaction"));
+
         String panelType = event.getOption("create")
                 .flatMap(option -> option.getOption("type"))
                 .flatMap(ApplicationCommandInteractionOption::getValue)
@@ -62,26 +68,35 @@ public class PanelCommandHandler implements SlashCommand {
                                                 MessageCreateSpec
                                                         .create()
                                                         .withFlags(Message.Flag.IS_COMPONENTS_V2)
-                                                        .withComponents(createCrossroadsPanel()))
+                                                        .withComponents(createCrossroadsPanel(guildId.asString())))
                                         .doOnSuccess(ignore ->
                                                 log.info("Panel created successfully in channel: {}", textChannel.getId().asString())
-                                        ))
-                        .then(event.editReply("Panel created successfully!"))
-                        .then());
+                                        )
+                        .then(event.editReply("Panel created successfully!")))
+                        .onErrorResume(error -> event.editReply("Failed to create panel: " + error.getMessage())))
+                .then();
     }
 
-    private Container createCrossroadsPanel() {
+    private Container createCrossroadsPanel(String serverId) {
+        GameConfigDto gameConfig = appealSystemConfig.getGames().stream()
+                .filter(gameConfigDto -> gameConfigDto.appealServerId().equals(serverId))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("This server is not configured to be an APPEAL server."));
+
+        Section textSection = Section.of(Thumbnail.of(UnfurledMediaItem.of(gameConfig.image())));
+
+        // A section can only have one thumbnail and at most three text displays.
+        for (int i = 0; i < (Math.min(gameConfig.crossroadDescription().size(), 3)); i++) {
+            textSection = textSection.withAddedComponent(
+                    TextDisplay.of(gameConfig.crossroadDescription().get(i))
+            );
+        }
+
         return Container.of(
-                Section.of(
-                        Thumbnail.of(UnfurledMediaItem.of("https://cdn.discordapp.com/icons/1040045289794441336/f6d2863674b2df0d0669a252f061cd78.png?size=256&quality=lossless")),
-                        TextDisplay.of("# :bank:  EC | Appeal Hub  :bank:"),
-                        TextDisplay.of("Welcome to the EC Appeal Hub! This is your opportunity to reconnect with our community by submitting an appeal and addressing past offenses."),
-                        TextDisplay.of("Please note that appeals that appear low-effort will be rejected.")
-                ),
-                Separator.of(),
+                textSection, Separator.of(),
                 ActionRow.of(
-                        Button.secondary(CROSSROADS_DISCORD_BTN, "Appeal Discord"),
-                        Button.secondary(CROSSROADS_IN_GAME_BTN, "Appeal In-Game")
+                        Button.secondary(CROSSROADS_DISCORD_BTN_PREFIX + gameConfig.normalizedName(), "Appeal Discord"),
+                        Button.secondary(CROSSROADS_IN_GAME_BTN_PREFIX + gameConfig.normalizedName(), "Appeal In-Game")
                 )
         );
     }

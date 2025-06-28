@@ -22,7 +22,7 @@ import java.util.List;
 public class CommandRegistrar implements ApplicationRunner {
     private final RestClient discordRestClient;
 
-    @Value("${discord.dev.guild.id}")
+    @Value("${discord.dev.guild.id:#{null}}")
     private String devGuildId;
 
     @Override
@@ -41,7 +41,6 @@ public class CommandRegistrar implements ApplicationRunner {
         for (Resource resource : matcher.getResources("commands/*.json")) {
             ApplicationCommandRequest request = d4jMapper.getObjectMapper()
                     .readValue(resource.getInputStream(), ApplicationCommandRequest.class);
-
             commands.add(request);
         }
 
