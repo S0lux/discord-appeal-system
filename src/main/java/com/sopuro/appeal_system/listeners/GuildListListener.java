@@ -4,14 +4,10 @@ import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.guild.GuildCreateEvent;
-import discord4j.core.event.domain.interaction.ModalSubmitInteractionEvent;
 import discord4j.core.object.entity.Guild;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
-import java.util.stream.Stream;
 
 @Service
 @Slf4j
