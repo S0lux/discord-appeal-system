@@ -46,33 +46,30 @@ public class PanelCommandHandler implements SlashCommand {
     }
 
     private Mono<Void> handleCreatePanel(ChatInputInteractionEvent event) {
-        Snowflake invokerId = event.getUser().getId();
         Snowflake channelId = event.getInteraction().getChannelId();
         Snowflake guildId = event.getInteraction().getGuildId()
                 .orElseThrow(() -> new IllegalStateException("Guild ID is not present in the interaction"));
 
-        String panelType = event.getOption("create")
+        PanelType panelType = event.getOption("create")
                 .flatMap(option -> option.getOption("type"))
                 .flatMap(ApplicationCommandInteractionOption::getValue)
                 .map(ApplicationCommandInteractionOptionValue::asString)
+                .map(String::toUpperCase)
+                .map(PanelType::valueOf)
                 .orElseThrow();
 
-        log.info("User {} requested to create a panel type: {}", invokerId.asString(), panelType);
+        MessageCreateSpec panelMessageSpec = switch (panelType) {
+            case PanelType.CROSSROADS -> MessageCreateSpec
+                    .create()
+                    .withFlags(Message.Flag.IS_COMPONENTS_V2)
+                    .withComponents(createCrossroadsPanel(guildId.asString()));
+        };
 
         return event.deferReply().withEphemeral(true)
                 .then(gatewayDiscordClient.getChannelById(channelId)
                         .cast(TextChannel.class)
-                        .flatMap(textChannel ->
-                                textChannel
-                                        .createMessage(
-                                                MessageCreateSpec
-                                                        .create()
-                                                        .withFlags(Message.Flag.IS_COMPONENTS_V2)
-                                                        .withComponents(createCrossroadsPanel(guildId.asString())))
-                                        .doOnSuccess(ignore ->
-                                                log.info("Panel created successfully in channel: {}", textChannel.getId().asString())
-                                        )
-                        .then(event.editReply("Panel created successfully!")))
+                        .flatMap(textChannel -> textChannel.createMessage(panelMessageSpec))
+                        .then(event.editReply("Panel created successfully!"))
                         .onErrorResume(error -> event.editReply("Failed to create panel: " + error.getMessage())))
                 .then();
     }
