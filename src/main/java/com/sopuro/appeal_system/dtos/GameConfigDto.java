@@ -6,7 +6,9 @@ public record GameConfigDto(String name,
                             List<String> crossroadDescription,
                             String image,
                             String appealServerId,
-                            String communityServerId) {
+                            String communityServerId,
+                            String appealJudgeRoleId,
+                            String appealOverseerRoleId) {
     public String normalizedName() {
         return name != null ? name.toLowerCase().replace(" ", "_") : null;
     }

@@ -38,4 +38,12 @@ public class AppealSystemConfig {
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("No game configuration found for server ID: " + serverId));
     }
+
+    public String getJudgeRoleId(String serverId) {
+        return getGameConfigByServerId(serverId).appealJudgeRoleId();
+    }
+
+    public String getOverseerRoleId(String serverId) {
+        return getGameConfigByServerId(serverId).appealOverseerRoleId();
+    }
 }

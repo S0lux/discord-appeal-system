@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -30,6 +32,11 @@ public class PanelCommandHandler implements SlashCommand {
     @Override
     public String getName() {
         return "panel";
+    }
+
+    @Override
+    public List<String> getRoles() {
+        return List.of("OVERSEER");
     }
 
     @Override
