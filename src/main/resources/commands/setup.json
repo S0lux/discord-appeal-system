@@ -1,0 +1,6 @@
+{
+  "name": "setup",
+  "description": "Creates the necessary categories and channels for the bot to function properly",
+  "type": 1,
+  "options": []
+}

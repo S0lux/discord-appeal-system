@@ -39,6 +39,14 @@ public class AppealSystemConfig {
                 .orElseThrow(() -> new IllegalArgumentException("No game configuration found for server ID: " + serverId));
     }
 
+    public Boolean isAppealServer(String serverId) {
+        return getAppealServerIds().contains(serverId);
+    }
+
+    public Boolean isCommunityServer(String serverId) {
+        return getCommunityServerIds().contains(serverId);
+    }
+
     public String getJudgeRoleId(String serverId) {
         return getGameConfigByServerId(serverId).appealJudgeRoleId();
     }

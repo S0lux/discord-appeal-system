@@ -6,8 +6,8 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 public interface SlashCommand {
-
     String getName();
-    List<String> getRoles();
+    List<String> allowedRoles();
+    Mono<Void> preCondition(ChatInputInteractionEvent event);
     Mono<Void> handle(ChatInputInteractionEvent event);
 }

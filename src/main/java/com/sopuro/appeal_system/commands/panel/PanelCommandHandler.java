@@ -37,8 +37,13 @@ public class PanelCommandHandler implements SlashCommand {
     }
 
     @Override
-    public List<String> getRoles() {
+    public List<String> allowedRoles() {
         return List.of("OVERSEER");
+    }
+
+    @Override
+    public Mono<Void> preCondition(ChatInputInteractionEvent event) {
+        return Mono.empty();
     }
 
     @Override

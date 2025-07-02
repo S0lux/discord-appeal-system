@@ -42,7 +42,8 @@ public class CommandListener {
         }
 
         return validateGuildContext(event)
-                .then(Mono.defer(() -> validatePermissions(event, command.getRoles())))
+                .then(Mono.defer(() -> validateUserRoles(event, command.allowedRoles())))
+                .then(Mono.defer(() -> command.preCondition(event)))
                 .then(Mono.defer(() -> executeCommand(event, command)))
                 .onErrorResume(error -> handleCommandError(event, error));
     }
@@ -53,7 +54,7 @@ public class CommandListener {
         return Mono.empty();
     }
 
-    private Mono<Void> validatePermissions(ChatInputInteractionEvent event, List<String> requiredRoles) {
+    private Mono<Void> validateUserRoles(ChatInputInteractionEvent event, List<String> requiredRoles) {
         if (requiredRoles.isEmpty()) {
             return Mono.empty();
         }
