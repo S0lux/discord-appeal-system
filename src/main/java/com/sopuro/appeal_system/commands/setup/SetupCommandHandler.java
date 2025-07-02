@@ -5,7 +5,6 @@ import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.exceptions.CategoryAlreadySetupException;
 import com.sopuro.appeal_system.exceptions.NotAppealGuildException;
 import discord4j.common.util.Snowflake;
-import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.PermissionOverwrite;
 import discord4j.core.object.entity.Guild;
@@ -25,7 +24,6 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class SetupCommandHandler implements SlashCommand {
-    private final GatewayDiscordClient gatewayDiscordClient;
     private final AppealSystemConfig appealSystemConfig;
 
     private static final String COMMAND_NAME = "setup";
