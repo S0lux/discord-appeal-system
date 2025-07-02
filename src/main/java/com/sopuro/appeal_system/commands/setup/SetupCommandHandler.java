@@ -4,6 +4,7 @@ import com.sopuro.appeal_system.commands.SlashCommand;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.exceptions.CategoryAlreadySetupException;
 import com.sopuro.appeal_system.exceptions.NotAppealGuildException;
+import com.sopuro.appeal_system.shared.enums.AppealRole;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.PermissionOverwrite;
@@ -55,8 +56,8 @@ public class SetupCommandHandler implements SlashCommand {
     }
 
     @Override
-    public List<String> allowedRoles() {
-        return List.of("OVERSEER");
+    public List<AppealRole> allowedRoles() {
+        return List.of(AppealRole.OVERSEER);
     }
 
     @Override

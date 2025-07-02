@@ -4,6 +4,7 @@ import com.sopuro.appeal_system.commands.SlashCommand;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.exceptions.MissingGuildContextException;
+import com.sopuro.appeal_system.shared.enums.AppealRole;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
@@ -37,8 +38,8 @@ public class PanelCommandHandler implements SlashCommand {
     }
 
     @Override
-    public List<String> allowedRoles() {
-        return List.of("OVERSEER");
+    public List<AppealRole> allowedRoles() {
+        return List.of(AppealRole.OVERSEER);
     }
 
     @Override

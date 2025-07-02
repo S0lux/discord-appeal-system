@@ -5,6 +5,7 @@ import com.sopuro.appeal_system.exceptions.AppealSystemException;
 import com.sopuro.appeal_system.exceptions.ApplicationMisconfiguredException;
 import com.sopuro.appeal_system.exceptions.MissingGuildContextException;
 import com.sopuro.appeal_system.exceptions.MissingPermissionException;
+import com.sopuro.appeal_system.shared.enums.AppealRole;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
@@ -54,8 +55,8 @@ public class CommandListener {
         return Mono.empty();
     }
 
-    private Mono<Void> validateUserRoles(ChatInputInteractionEvent event, List<String> requiredRoles) {
-        if (requiredRoles.isEmpty()) {
+    private Mono<Void> validateUserRoles(ChatInputInteractionEvent event, List<AppealRole> requiredAppealRoles) {
+        if (requiredAppealRoles.isEmpty()) {
             return Mono.empty();
         }
 
@@ -64,11 +65,11 @@ public class CommandListener {
                 .asString();
 
         try {
-            List<String> requiredRoleIds = mapRolesToIds(requiredRoles, guildId);
+            List<String> requiredRoleIds = mapRolesToIds(requiredAppealRoles, guildId);
             List<String> userRoleIds = getUserRoleIds(event);
 
             boolean hasPermission = requiredRoleIds.stream().anyMatch(userRoleIds::contains);
-            if (!hasPermission) return Mono.error(new MissingPermissionException(requiredRoles));
+            if (!hasPermission) return Mono.error(new MissingPermissionException(requiredAppealRoles));
         } catch (IllegalArgumentException e) {
             log.error("Role configuration error for guild {}: {}", guildId, e.getMessage());
             return Mono.error(new ApplicationMisconfiguredException());
@@ -77,17 +78,16 @@ public class CommandListener {
         return Mono.empty();
     }
 
-    private List<String> mapRolesToIds(List<String> roles, String guildId) {
-        return roles.stream()
-                .map(role -> mapRoleToId(role, guildId))
+    private List<String> mapRolesToIds(List<AppealRole> appealRoles, String guildId) {
+        return appealRoles.stream()
+                .map(appealSystemRole -> mapRoleToId(appealSystemRole, guildId))
                 .toList();
     }
 
-    private String mapRoleToId(String role, String guildId) {
-        return switch (role.toUpperCase()) {
-            case "OVERSEER" -> appealSystemConfig.getOverseerRoleId(guildId);
-            case "JUDGE" -> appealSystemConfig.getJudgeRoleId(guildId);
-            default -> throw new IllegalArgumentException("Unknown role: " + role);
+    private String mapRoleToId(AppealRole appealRole, String guildId) {
+        return switch (appealRole) {
+            case AppealRole.OVERSEER -> appealSystemConfig.getOverseerRoleId(guildId);
+            case AppealRole.JUDGE -> appealSystemConfig.getJudgeRoleId(guildId);
         };
     }
 
