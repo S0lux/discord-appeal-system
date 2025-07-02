@@ -3,6 +3,7 @@ package com.sopuro.appeal_system.commands.panel;
 import com.sopuro.appeal_system.commands.SlashCommand;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
+import com.sopuro.appeal_system.exceptions.MissingGuildContextException;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
@@ -54,8 +56,8 @@ public class PanelCommandHandler implements SlashCommand {
 
     private Mono<Void> handleCreatePanel(ChatInputInteractionEvent event) {
         Snowflake channelId = event.getInteraction().getChannelId();
-        Snowflake guildId = event.getInteraction().getGuildId()
-                .orElseThrow(() -> new IllegalStateException("Guild ID is not present in the interaction"));
+        Optional<Snowflake> guildId = event.getInteraction().getGuildId();
+        if (guildId.isEmpty()) return Mono.error(new MissingGuildContextException());
 
         PanelType panelType = event.getOption("create")
                 .flatMap(option -> option.getOption("type"))
@@ -69,7 +71,7 @@ public class PanelCommandHandler implements SlashCommand {
             case PanelType.CROSSROADS -> MessageCreateSpec
                     .create()
                     .withFlags(Message.Flag.IS_COMPONENTS_V2)
-                    .withComponents(createCrossroadsPanel(guildId.asString()));
+                    .withComponents(createCrossroadsPanel(guildId.get().asString()));
         };
 
         return event.deferReply().withEphemeral(true)
