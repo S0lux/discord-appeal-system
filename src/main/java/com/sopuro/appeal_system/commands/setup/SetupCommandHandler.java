@@ -2,9 +2,12 @@ package com.sopuro.appeal_system.commands.setup;
 
 import com.sopuro.appeal_system.commands.SlashCommand;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
+import com.sopuro.appeal_system.entities.GuildConfigEntity;
 import com.sopuro.appeal_system.exceptions.CategoryAlreadySetupException;
 import com.sopuro.appeal_system.exceptions.NotAppealGuildException;
+import com.sopuro.appeal_system.repositories.GuildConfigRepository;
 import com.sopuro.appeal_system.shared.enums.AppealRole;
+import com.sopuro.appeal_system.shared.enums.GuildConfig;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.PermissionOverwrite;
@@ -18,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -26,6 +30,7 @@ import java.util.List;
 @Slf4j
 public class SetupCommandHandler implements SlashCommand {
     private final AppealSystemConfig appealSystemConfig;
+    private final GuildConfigRepository guildConfigRepository;
 
     private static final String COMMAND_NAME = "setup";
     private static final String CATEGORY_OPEN_APPEALS = "Open Appeals";
@@ -119,6 +124,18 @@ public class SetupCommandHandler implements SlashCommand {
                                                 isOpenCategory ? PERMISSIONS_OPEN_OVERSEER : PERMISSIONS_CLOSED_OVERSEER,
                                                 PermissionSet.none()))
                                 .build())
+                        .publishOn(Schedulers.boundedElastic())
+                        .map(category -> {
+                            GuildConfigEntity config = GuildConfigEntity.builder()
+                                    .guildId(category.getGuildId().asString())
+                                    .configKey(isOpenCategory ?
+                                            GuildConfig.OPEN_APPEALS_CATEGORY_ID :
+                                            GuildConfig.CLOSED_APPEALS_CATEGORY_ID)
+                                    .configValue(category.getId().asString())
+                                    .build();
+
+                            return guildConfigRepository.save(config);
+                        })
                         .then()
         );
     }

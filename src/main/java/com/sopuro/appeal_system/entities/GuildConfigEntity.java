@@ -16,7 +16,6 @@ import java.util.Objects;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@RequiredArgsConstructor
 public class GuildConfigEntity {
     @Id
     @Column(name = "guild_id")

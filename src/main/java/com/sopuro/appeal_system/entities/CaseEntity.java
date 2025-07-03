@@ -21,7 +21,6 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@RequiredArgsConstructor
 public class CaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
