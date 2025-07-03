@@ -3,10 +3,7 @@ package com.sopuro.appeal_system.entities;
 import com.sopuro.appeal_system.shared.enums.AppealPlatform;
 import com.sopuro.appeal_system.shared.enums.AppealVerdict;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -18,10 +15,13 @@ import java.util.UUID;
 @Entity
 @Table(name = "cases")
 @EntityListeners(AuditingEntityListener.class)
-@RequiredArgsConstructor
 @Getter
 @Setter
 @ToString
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@RequiredArgsConstructor
 public class CaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)

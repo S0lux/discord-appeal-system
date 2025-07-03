@@ -10,10 +10,13 @@ import java.util.Objects;
 @Entity
 @Table(name = "guild_configs")
 @IdClass(GuildConfigId.class)
-@RequiredArgsConstructor
 @Getter
 @Setter
 @ToString
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+@RequiredArgsConstructor
 public class GuildConfigEntity {
     @Id
     @Column(name = "guild_id")
