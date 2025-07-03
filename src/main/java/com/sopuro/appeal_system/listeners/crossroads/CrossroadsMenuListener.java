@@ -8,9 +8,7 @@ import com.sopuro.appeal_system.listeners.crossroads.components.MenuAppealDiscor
 import com.sopuro.appeal_system.listeners.crossroads.components.ModalAppealDiscord;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
-import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent;
-import discord4j.core.object.component.SelectMenu;
 import discord4j.rest.http.client.ClientException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
