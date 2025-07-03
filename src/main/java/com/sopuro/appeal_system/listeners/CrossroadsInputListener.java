@@ -3,12 +3,16 @@ package com.sopuro.appeal_system.listeners;
 import com.sopuro.appeal_system.commands.panel.PanelCommandHandler;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
+import com.sopuro.appeal_system.exceptions.AppealSystemException;
+import com.sopuro.appeal_system.exceptions.UserIsNotDiscordBannedException;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
+import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
 import discord4j.core.object.component.ActionRow;
 import discord4j.core.object.component.TextInput;
 import discord4j.core.spec.InteractionPresentModalSpec;
+import discord4j.rest.http.client.ClientException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -19,6 +23,7 @@ import java.util.List;
 @Slf4j
 public class CrossroadsInputListener {
     private final AppealSystemConfig appealSystemConfig;
+    private final GatewayDiscordClient gatewayDiscordClient;
 
     public static final String DISCORD_MODAL_PREFIX = "crossroads:discord_modal_";
     public static final String DISCORD_MODAL_PUNISHMENT = "crossroads:discord_modal_punishment";
@@ -30,12 +35,27 @@ public class CrossroadsInputListener {
     public static final String IN_GAME_MODAL_PUNISHMENT_REASON = "crossroads:in-game_modal_punishment_reason";
     public static final String IN_GAME_MODAL_APPEAL_REASON = "crossroads:in-game_modal_appeal_reason";
 
-    public CrossroadsInputListener(GatewayDiscordClient client, AppealSystemConfig appealSystemConfig) {
+    public CrossroadsInputListener(GatewayDiscordClient client, AppealSystemConfig appealSystemConfig, GatewayDiscordClient gatewayDiscordClient) {
         this.appealSystemConfig = appealSystemConfig;
+        this.gatewayDiscordClient = gatewayDiscordClient;
         client.on(ButtonInteractionEvent.class)
                 .filter(event -> event.getCustomId().startsWith("crossroads:"))
-                .flatMap(this::handleCrossroadsButtonClick)
+                .flatMap(event -> handleCrossroadsButtonClick(event)
+                        .onErrorResume(throwable -> handleCommandError(event, throwable)))
                 .subscribe();
+    }
+
+    private Mono<Void> ensureUserIsDiscordBanned(ButtonInteractionEvent event, String communityServerId) {
+        return gatewayDiscordClient
+                .getGuildById(Snowflake.of(communityServerId))
+                .flatMap(guild -> guild.getBan(event.getUser().getId()))
+                .flatMap(ignored -> Mono.empty())
+                .onErrorResume(ClientException.class, ex -> {
+                    if (ex.getStatus().code() == 404) {
+                        return Mono.error(new UserIsNotDiscordBannedException());
+                    }
+                    return Mono.error(ex);
+                }).then();
     }
 
     private Mono<Void> handleCrossroadsButtonClick(ButtonInteractionEvent event) {
@@ -49,8 +69,13 @@ public class CrossroadsInputListener {
 
         GameConfigDto gameConfig = appealSystemConfig.getGameConfigByServerId(guildId.asString());
 
+        // Discord appeal button handling
         if (event.getCustomId().startsWith(PanelCommandHandler.CROSSROADS_DISCORD_BTN_PREFIX))
-            return event.presentModal(createDiscordAppealModal(gameConfig.normalizedName()));
+            return ensureUserIsDiscordBanned(event, gameConfig.communityServerId())
+                    .then(Mono.defer(() ->
+                            event.presentModal(createDiscordAppealModal(gameConfig.normalizedName()))));
+
+        // In-game appeal button handling
         else if (event.getCustomId().startsWith(PanelCommandHandler.CROSSROADS_IN_GAME_BTN_PREFIX))
             return event.presentModal(createInGameAppealModal(gameConfig.normalizedName()));
         else return Mono.empty();
@@ -96,5 +121,14 @@ public class CrossroadsInputListener {
                                         .placeholder("Why do you think the punishment should be lifted? What has changed? What have you learned?"))
                 ))
                 .build();
+    }
+
+    private Mono<Void> handleCommandError(ButtonInteractionEvent event, Throwable error) {
+        if (error instanceof AppealSystemException)
+            return event.reply(error.getMessage())
+                    .withEphemeral(true);
+
+        return event.reply("An error occurred while processing your command. Please try again later.")
+                .withEphemeral(true);
     }
 }
