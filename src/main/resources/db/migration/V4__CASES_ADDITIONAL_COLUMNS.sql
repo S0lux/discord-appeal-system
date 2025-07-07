@@ -1,0 +1,11 @@
+ALTER TABLE cases
+    ADD channel_id VARCHAR(255);
+
+ALTER TABLE cases
+    ADD game VARCHAR(255);
+
+ALTER TABLE cases
+    ALTER COLUMN channel_id SET NOT NULL;
+
+ALTER TABLE cases
+    ALTER COLUMN game SET NOT NULL;

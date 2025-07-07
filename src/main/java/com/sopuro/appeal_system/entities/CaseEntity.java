@@ -2,6 +2,7 @@ package com.sopuro.appeal_system.entities;
 
 import com.sopuro.appeal_system.shared.enums.AppealPlatform;
 import com.sopuro.appeal_system.shared.enums.AppealVerdict;
+import com.sopuro.appeal_system.shared.enums.PunishmentType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
@@ -24,15 +25,18 @@ public class CaseEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "game", nullable = false)
+    private String game;
+
     @Column(name = "appealer_discord_id", nullable = false)
     private String appealerDiscordId;
 
     @Column(name = "appealer_roblox_id", nullable = false)
     private String appealerRobloxId;
 
-    @Column(name = "appeal_type", nullable = false)
+    @Column(name = "appeal_platform", nullable = false)
     @Enumerated(EnumType.STRING)
-    private AppealPlatform appealType;
+    private AppealPlatform appealPlatform;
 
     @Column(name = "appeal_verdict", nullable = false)
     @Enumerated(EnumType.STRING)
@@ -42,13 +46,17 @@ public class CaseEntity {
     private String appealReason;
 
     @Column(name = "punishment_type", nullable = false)
-    private String punishmentType;
+    @Enumerated(EnumType.STRING)
+    private PunishmentType punishmentType;
 
     @Column(name = "punishment_reason", nullable = false)
     private String punishmentReason;
 
+    @Column(name = "channel_id", nullable = false)
+    private String channelId;
+
     @CreatedDate
-    @Column(name = "appealed_at", nullable = false)
+    @Column(name = "appealed_at", nullable = false, updatable = false)
     private Instant appealedAt;
 
     @Column(name = "closed_at")
