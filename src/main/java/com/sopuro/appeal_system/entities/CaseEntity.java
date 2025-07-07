@@ -6,7 +6,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -14,7 +13,6 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "cases")
-@EntityListeners(AuditingEntityListener.class)
 @Getter
 @Setter
 @ToString

@@ -108,8 +108,7 @@ public class CommandListener {
 
     private Mono<Void> handleCommandError(ChatInputInteractionEvent event, Throwable error) {
         if (error instanceof AppealSystemException)
-            return event.reply(error.getMessage())
-                    .withEphemeral(true);
+            return event.reply(error.getMessage()).withEphemeral(true);
 
         return event.reply("An error occurred while processing your command. Please try again later.")
                 .withEphemeral(true);

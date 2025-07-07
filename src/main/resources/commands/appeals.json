@@ -1,0 +1,19 @@
+{
+  "name": "appeals",
+  "description": "Commands related to appeals",
+  "options": [
+    {
+      "name": "accepting",
+      "description": "Allow or disallow new appeals to be submitted",
+      "type": 1,
+      "options": [
+        {
+          "name": "boolean",
+          "description": "Allow or disallow new appeals to be submitted",
+          "type": 5,
+          "required": true
+        }
+      ]
+    }
+  ]
+}
