@@ -19,15 +19,20 @@ public class GuildListListener {
         this.appealSystemConfig = appealSystemConfig;
         this.gatewayDiscordClient = gatewayDiscordClient;
 
-        gatewayDiscordClient.on(GuildCreateEvent.class, event -> validateGuild(event.getGuild().getId())).subscribe();
+        gatewayDiscordClient
+                .on(
+                        GuildCreateEvent.class,
+                        event -> validateGuild(event.getGuild().getId()))
+                .subscribe();
     }
 
     private Mono<Void> validateGuild(Snowflake guildId) {
         if (!appealSystemConfig.getAllRegisteredServerIds().contains(guildId.asString())) {
             log.warn("Guild with ID {} is not configured in the appeal system. Leaving guild...", guildId.asString());
-            return gatewayDiscordClient.getGuildById(guildId)
-                .flatMap(Guild::leave)
-                .doOnSuccess(ignored -> log.info("Left guild with ID {}", guildId.asString()));
+            return gatewayDiscordClient
+                    .getGuildById(guildId)
+                    .flatMap(Guild::leave)
+                    .doOnSuccess(ignored -> log.info("Left guild with ID {}", guildId.asString()));
         }
 
         return Mono.empty();

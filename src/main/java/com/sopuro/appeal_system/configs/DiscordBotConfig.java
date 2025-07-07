@@ -12,10 +12,12 @@ import org.springframework.context.annotation.Configuration;
 public class DiscordBotConfig {
     @Bean
     public GatewayDiscordClient gatewayDiscordClient(@Value("${discord.bot.token}") String token) {
-        return DiscordClientBuilder.create(token).build()
+        return DiscordClientBuilder.create(token)
+                .build()
                 .gateway()
                 .setEnabledIntents(IntentSet.all())
-                .login().block();
+                .login()
+                .block();
     }
 
     @Bean

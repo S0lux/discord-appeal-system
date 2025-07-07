@@ -24,10 +24,11 @@ public class CrossroadsMenuListener {
         this.gatewayDiscordClient = gatewayDiscordClient;
         this.appealSystemConfig = appealSystemConfig;
 
-        gatewayDiscordClient.on(SelectMenuInteractionEvent.class)
+        gatewayDiscordClient
+                .on(SelectMenuInteractionEvent.class)
                 .filter(menu -> menu.getCustomId().startsWith(MenuAppealDiscord.DISCORD_SELECT_MENU_PREFIX))
-                .flatMap(event -> handleMenuSelect(event)
-                        .onErrorResume(throwable -> handleCommandError(event, throwable)))
+                .flatMap(event ->
+                        handleMenuSelect(event).onErrorResume(throwable -> handleCommandError(event, throwable)))
                 .subscribe();
     }
 
@@ -41,11 +42,13 @@ public class CrossroadsMenuListener {
                         return Mono.error(new UserIsNotDiscordBannedException());
                     }
                     return Mono.error(ex);
-                }).then();
+                })
+                .then();
     }
 
     private Mono<Void> handleMenuSelect(SelectMenuInteractionEvent event) {
-        Snowflake guildId = event.getInteraction().getGuildId()
+        Snowflake guildId = event.getInteraction()
+                .getGuildId()
                 .orElseThrow(() -> new IllegalStateException("Guild ID is not present in the interaction"));
 
         if (!appealSystemConfig.getAppealServerIds().contains(guildId.asString()))
@@ -56,10 +59,13 @@ public class CrossroadsMenuListener {
         }
 
         String selectedOption = event.getValues().getFirst();
-        String normalizedGameName = appealSystemConfig.getGameConfigByServerId(guildId.asString()).normalizedName();
+        String normalizedGameName =
+                appealSystemConfig.getGameConfigByServerId(guildId.asString()).normalizedName();
 
         if (MenuAppealDiscord.BAN_VALUE.equals(selectedOption)) {
-            return ensureUserIsDiscordBanned(event, event.getInteraction().getGuildId().orElseThrow().asString())
+            return ensureUserIsDiscordBanned(
+                            event,
+                            event.getInteraction().getGuildId().orElseThrow().asString())
                     .then(event.presentModal(new ModalAppealDiscord(normalizedGameName).createModal()));
         } else if (MenuAppealDiscord.WARNING_VALUE.equals(selectedOption)) {
             return event.presentModal(new ModalAppealDiscord(normalizedGameName).createModal());
@@ -70,8 +76,7 @@ public class CrossroadsMenuListener {
 
     private Mono<Void> handleCommandError(SelectMenuInteractionEvent event, Throwable error) {
         if (error instanceof AppealSystemException)
-            return event.reply(error.getMessage())
-                    .withEphemeral(true);
+            return event.reply(error.getMessage()).withEphemeral(true);
 
         return event.reply("An error occurred while processing your command. Please try again later.")
                 .withEphemeral(true);

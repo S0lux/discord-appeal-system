@@ -29,19 +29,14 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class SetupCommandHandler implements SlashCommand {
-    private final AppealSystemConfig appealSystemConfig;
-    private final GuildConfigRepository guildConfigRepository;
-
     private static final String COMMAND_NAME = "setup";
     private static final String CATEGORY_OPEN_APPEALS = "Open Appeals";
     private static final String CATEGORY_CLOSED_APPEALS = "Closed Appeals";
-
     private static final PermissionSet PERMISSIONS_OPEN_OVERSEER = PermissionSet.all();
     private static final PermissionSet PERMISSIONS_CLOSED_OVERSEER = PermissionSet.of(
             Permission.VIEW_CHANNEL,
             Permission.READ_MESSAGE_HISTORY
     );
-
     private static final PermissionSet PERMISSIONS_OPEN_JUDGE = PermissionSet.of(
             Permission.VIEW_CHANNEL,
             Permission.SEND_MESSAGES,
@@ -53,7 +48,8 @@ public class SetupCommandHandler implements SlashCommand {
             Permission.VIEW_CHANNEL,
             Permission.READ_MESSAGE_HISTORY
     );
-
+    private final AppealSystemConfig appealSystemConfig;
+    private final GuildConfigRepository guildConfigRepository;
 
     @Override
     public String getName() {

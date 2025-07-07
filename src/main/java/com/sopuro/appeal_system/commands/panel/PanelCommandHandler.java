@@ -26,11 +26,10 @@ import java.util.Optional;
 @RequiredArgsConstructor
 @Slf4j
 public class PanelCommandHandler implements SlashCommand {
-    private final GatewayDiscordClient gatewayDiscordClient;
-    private final AppealSystemConfig appealSystemConfig;
-
     public static final String CROSSROADS_DISCORD_BTN_PREFIX = "crossroads:discord_btn_";
     public static final String CROSSROADS_IN_GAME_BTN_PREFIX = "crossroads:in-game_btn_";
+    private final GatewayDiscordClient gatewayDiscordClient;
+    private final AppealSystemConfig appealSystemConfig;
 
     @Override
     public String getName() {
