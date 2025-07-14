@@ -1,11 +1,13 @@
 package com.sopuro.appeal_system.listeners.crossroads;
 
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
+import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.exceptions.AppealSystemException;
-import com.sopuro.appeal_system.exceptions.NotAppealGuildException;
-import com.sopuro.appeal_system.exceptions.UserIsNotDiscordBannedException;
-import com.sopuro.appeal_system.listeners.crossroads.components.MenuAppealDiscord;
-import com.sopuro.appeal_system.listeners.crossroads.components.ModalAppealDiscord;
+import com.sopuro.appeal_system.exceptions.appeal.NotAppealGuildException;
+import com.sopuro.appeal_system.exceptions.appeal.UserIsNotDiscordBannedException;
+import com.sopuro.appeal_system.components.menus.MenuAppealDiscord;
+import com.sopuro.appeal_system.components.modals.ModalAppealDiscord;
+import com.sopuro.appeal_system.shared.enums.PunishmentType;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.SelectMenuInteractionEvent;
@@ -59,16 +61,15 @@ public class CrossroadsMenuListener {
         }
 
         String selectedOption = event.getValues().getFirst();
-        String normalizedGameName =
-                appealSystemConfig.getGameConfigByServerId(guildId.asString()).normalizedName();
+        GameConfigDto gameConfig = appealSystemConfig.getGameConfigByServerId(guildId.asString());
 
         if (MenuAppealDiscord.BAN_VALUE.equals(selectedOption)) {
-            return ensureUserIsDiscordBanned(
-                            event,
-                            event.getInteraction().getGuildId().orElseThrow().asString())
-                    .then(event.presentModal(new ModalAppealDiscord(normalizedGameName).createModal()));
+            return ensureUserIsDiscordBanned(event, gameConfig.communityServerId())
+                    .then(event.presentModal(
+                            new ModalAppealDiscord(gameConfig.normalizedName()).createModal(PunishmentType.BAN)));
         } else if (MenuAppealDiscord.WARNING_VALUE.equals(selectedOption)) {
-            return event.presentModal(new ModalAppealDiscord(normalizedGameName).createModal());
+            return event.presentModal(
+                    new ModalAppealDiscord(gameConfig.normalizedName()).createModal(PunishmentType.WARN));
         } else {
             return event.reply("Invalid selection. Please try again.").withEphemeral(true);
         }

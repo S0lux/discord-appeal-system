@@ -1,5 +1,6 @@
-package com.sopuro.appeal_system.exceptions;
+package com.sopuro.appeal_system.exceptions.appeal;
 
+import com.sopuro.appeal_system.exceptions.AppealSystemException;
 import com.sopuro.appeal_system.shared.enums.AppealRole;
 
 import java.util.List;

@@ -2,9 +2,9 @@ package com.sopuro.appeal_system.commands;
 
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.exceptions.AppealSystemException;
-import com.sopuro.appeal_system.exceptions.ApplicationMisconfiguredException;
-import com.sopuro.appeal_system.exceptions.MissingGuildContextException;
-import com.sopuro.appeal_system.exceptions.MissingPermissionException;
+import com.sopuro.appeal_system.exceptions.appeal.ApplicationMisconfiguredException;
+import com.sopuro.appeal_system.exceptions.appeal.MissingGuildContextException;
+import com.sopuro.appeal_system.exceptions.appeal.MissingPermissionException;
 import com.sopuro.appeal_system.shared.enums.AppealRole;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;

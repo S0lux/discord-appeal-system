@@ -1,4 +1,4 @@
-package com.sopuro.appeal_system.listeners.crossroads.components;
+package com.sopuro.appeal_system.components.modals;
 
 import discord4j.core.object.component.ActionRow;
 import discord4j.core.object.component.TextInput;

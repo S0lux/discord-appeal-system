@@ -3,7 +3,7 @@ package com.sopuro.appeal_system.commands.panel;
 import com.sopuro.appeal_system.commands.SlashCommand;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
-import com.sopuro.appeal_system.exceptions.MissingGuildContextException;
+import com.sopuro.appeal_system.exceptions.appeal.MissingGuildContextException;
 import com.sopuro.appeal_system.shared.enums.AppealRole;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;

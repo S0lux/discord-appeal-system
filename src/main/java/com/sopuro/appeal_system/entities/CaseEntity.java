@@ -42,14 +42,14 @@ public class CaseEntity {
     @Enumerated(EnumType.STRING)
     private AppealVerdict appealVerdict;
 
-    @Column(name = "appeal_reason", nullable = false)
+    @Column(name = "appeal_reason", nullable = false, columnDefinition = "TEXT")
     private String appealReason;
 
     @Column(name = "punishment_type", nullable = false)
     @Enumerated(EnumType.STRING)
     private PunishmentType punishmentType;
 
-    @Column(name = "punishment_reason", nullable = false)
+    @Column(name = "punishment_reason", nullable = false, columnDefinition = "TEXT")
     private String punishmentReason;
 
     @Column(name = "channel_id", nullable = false)
