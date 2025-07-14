@@ -1,9 +1,10 @@
 package com.sopuro.appeal_system.listeners.crossroads;
 
 import com.sopuro.appeal_system.clients.opencloud.OpenCloudClient;
-import com.sopuro.appeal_system.clients.rover.RoverClient;
 import com.sopuro.appeal_system.clients.opencloud.dtos.OpenCloudRobloxProfileDto;
+import com.sopuro.appeal_system.clients.rover.RoverClient;
 import com.sopuro.appeal_system.components.messages.CaseInfoMessage;
+import com.sopuro.appeal_system.components.modals.ModalAppealDiscord;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.entities.CaseEntity;
@@ -12,7 +13,6 @@ import com.sopuro.appeal_system.exceptions.appeal.ExistingPendingCaseException;
 import com.sopuro.appeal_system.exceptions.appeal.IncorrectServerSetupException;
 import com.sopuro.appeal_system.exceptions.appeal.MissingGuildContextException;
 import com.sopuro.appeal_system.exceptions.rover.RobloxAccountNotVerifiedException;
-import com.sopuro.appeal_system.components.modals.ModalAppealDiscord;
 import com.sopuro.appeal_system.repositories.CaseRepository;
 import com.sopuro.appeal_system.repositories.GuildConfigRepository;
 import com.sopuro.appeal_system.shared.enums.AppealPlatform;

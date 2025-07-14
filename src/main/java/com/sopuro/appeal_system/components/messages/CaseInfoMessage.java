@@ -6,14 +6,12 @@ import discord4j.core.event.domain.interaction.ModalSubmitInteractionEvent;
 import discord4j.core.object.component.Container;
 import discord4j.core.object.component.Separator;
 import discord4j.core.object.component.TextDisplay;
-import discord4j.core.object.component.TextInput;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.MessageCreateSpec;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CaseInfoMessage {
-    private static final String DEFAULT_REASON = "No reason provided";
 
     public static MessageCreateSpec createCaseInfoMessage(ModalSubmitInteractionEvent event, String caseId) {
         String gameName = ModalAppealDiscord.getNormalizedGameNameFromModalId(event.getCustomId());
