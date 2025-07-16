@@ -8,12 +8,10 @@ import discord4j.core.object.component.Separator;
 import discord4j.core.object.component.TextDisplay;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.MessageCreateSpec;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 public class CaseInfoMessage {
 
-    public static MessageCreateSpec createCaseInfoMessage(ModalSubmitInteractionEvent event, String caseId) {
+    public static MessageCreateSpec create(ModalSubmitInteractionEvent event, String caseId) {
         String gameName = ModalAppealDiscord.getNormalizedGameNameFromModalId(event.getCustomId());
         PunishmentType punishmentType = ModalAppealDiscord.getPunishmentTypeFromModalId(event.getCustomId());
 

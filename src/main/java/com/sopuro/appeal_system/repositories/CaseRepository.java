@@ -8,16 +8,23 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 public interface CaseRepository extends JpaRepository<CaseEntity, UUID> {
-    @Query("SELECT c FROM CaseEntity c WHERE c.game = :game AND c.punishmentType = :punishmentType " +
-            "AND c.appealerDiscordId = :appealerDiscordId AND c.appealVerdict = :appealVerdict " +
-            "AND c.appealPlatform = :appealPlatform")
-    Optional<CaseEntity> findAppealCase(@Param("game") String game,
-                                        @Param("punishmentType") PunishmentType punishmentType,
-                                        @Param("appealerDiscordId") String appealerDiscordId,
-                                        @Param("appealVerdict") AppealVerdict appealVerdict,
-                                        @Param("appealPlatform") AppealPlatform appealPlatform);
+    @Query("SELECT c FROM CaseEntity c WHERE c.game = :game AND c.punishmentType = :punishmentType "
+            + "AND c.appealerDiscordId = :appealerDiscordId AND c.appealVerdict = :appealVerdict "
+            + "AND c.appealPlatform = :appealPlatform")
+    Optional<CaseEntity> findAppealCase(
+            String game,
+            PunishmentType punishmentType,
+            String appealerDiscordId,
+            AppealVerdict appealVerdict,
+            AppealPlatform appealPlatform);
+
+    @Query("SELECT c FROM CaseEntity c WHERE c.appealerDiscordId = :appealerDiscordId "
+            + "OR c.appealerRobloxId = :appealerRobloxId "
+            + "ORDER BY c.appealedAt DESC")
+    List<CaseEntity> getCasesOfAppealer(String appealerDiscordId, String appealerRobloxId);
 }
