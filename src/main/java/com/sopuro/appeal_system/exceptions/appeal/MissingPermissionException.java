@@ -1,11 +1,11 @@
 package com.sopuro.appeal_system.exceptions.appeal;
 
-import com.sopuro.appeal_system.exceptions.AppealSystemException;
+import com.sopuro.appeal_system.exceptions.AppealException;
 import com.sopuro.appeal_system.shared.enums.AppealRole;
 
 import java.util.List;
 
-public class MissingPermissionException extends AppealSystemException {
+public class MissingPermissionException extends AppealException {
     public MissingPermissionException(List<AppealRole> rolesWithPermission) {
         super("Only users with the following roles can use this command: " +
                 String.join(

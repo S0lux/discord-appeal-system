@@ -11,7 +11,7 @@ import com.sopuro.appeal_system.components.modals.ModalAppealDiscord;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.entities.CaseEntity;
-import com.sopuro.appeal_system.exceptions.AppealSystemException;
+import com.sopuro.appeal_system.exceptions.AppealException;
 import com.sopuro.appeal_system.exceptions.appeal.ExistingPendingCaseException;
 import com.sopuro.appeal_system.exceptions.appeal.IncorrectServerSetupException;
 import com.sopuro.appeal_system.exceptions.appeal.MissingGuildContextException;
@@ -273,7 +273,7 @@ public class CrossroadsModalListener {
     }
 
     private Mono<Void> handleCommandError(ModalSubmitInteractionEvent event, Throwable error) {
-        if (error instanceof AppealSystemException)
+        if (error instanceof AppealException)
             return event.editReply(error.getMessage()).then();
 
         log.error(error.getMessage(), error);

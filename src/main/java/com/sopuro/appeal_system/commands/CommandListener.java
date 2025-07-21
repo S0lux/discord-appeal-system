@@ -1,7 +1,7 @@
 package com.sopuro.appeal_system.commands;
 
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
-import com.sopuro.appeal_system.exceptions.AppealSystemException;
+import com.sopuro.appeal_system.exceptions.AppealException;
 import com.sopuro.appeal_system.exceptions.appeal.ApplicationMisconfiguredException;
 import com.sopuro.appeal_system.exceptions.appeal.MissingGuildContextException;
 import com.sopuro.appeal_system.exceptions.appeal.MissingPermissionException;
@@ -107,7 +107,7 @@ public class CommandListener {
     }
 
     private Mono<Void> handleCommandError(ChatInputInteractionEvent event, Throwable error) {
-        if (error instanceof AppealSystemException)
+        if (error instanceof AppealException)
             return event.reply(error.getMessage()).withEphemeral(true);
 
         return event.reply("An error occurred while processing your command. Please try again later.")

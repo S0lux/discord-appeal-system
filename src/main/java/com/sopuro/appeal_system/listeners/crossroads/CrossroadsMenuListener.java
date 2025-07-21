@@ -4,7 +4,7 @@ import com.sopuro.appeal_system.components.menus.MenuAppealDiscord;
 import com.sopuro.appeal_system.components.modals.ModalAppealDiscord;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
-import com.sopuro.appeal_system.exceptions.AppealSystemException;
+import com.sopuro.appeal_system.exceptions.AppealException;
 import com.sopuro.appeal_system.exceptions.appeal.NotAppealGuildException;
 import com.sopuro.appeal_system.exceptions.appeal.UserIsNotDiscordBannedException;
 import com.sopuro.appeal_system.shared.enums.PunishmentType;
@@ -76,7 +76,7 @@ public class CrossroadsMenuListener {
     }
 
     private Mono<Void> handleCommandError(SelectMenuInteractionEvent event, Throwable error) {
-        if (error instanceof AppealSystemException)
+        if (error instanceof AppealException)
             return event.reply(error.getMessage()).withEphemeral(true);
 
         return event.reply("An error occurred while processing your command. Please try again later.")

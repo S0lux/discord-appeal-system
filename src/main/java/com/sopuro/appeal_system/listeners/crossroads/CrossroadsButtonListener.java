@@ -6,7 +6,7 @@ import com.sopuro.appeal_system.components.modals.ModalAppealGame;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.entities.GuildConfigEntity;
-import com.sopuro.appeal_system.exceptions.AppealSystemException;
+import com.sopuro.appeal_system.exceptions.AppealException;
 import com.sopuro.appeal_system.exceptions.appeal.AppealDisabledException;
 import com.sopuro.appeal_system.exceptions.appeal.MissingGuildContextException;
 import com.sopuro.appeal_system.repositories.GuildConfigRepository;
@@ -95,7 +95,7 @@ public class CrossroadsButtonListener {
     }
 
     private Mono<Void> handleCommandError(ButtonInteractionEvent event, Throwable error) {
-        if (error instanceof AppealSystemException)
+        if (error instanceof AppealException)
             return event.reply(error.getMessage()).withEphemeral(true);
 
         log.error("Error handling button interaction: {}", error.getMessage(), error);
