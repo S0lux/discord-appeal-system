@@ -1,0 +1,28 @@
+{
+  "name": "verdict",
+  "description": "Gives a verdict on an appeal. This command can only be used within an appeal channel.",
+  "options": [
+    {
+      "name": "decision",
+      "description": "The decision to make on the appeal",
+      "type": 3,
+      "required": true,
+      "choices": [
+        {
+          "name": "ACCEPT",
+          "value": "accept"
+        },
+        {
+          "name": "REJECT",
+          "value": "reject"
+        }
+      ]
+    },
+    {
+      "name": "reason",
+      "description": "The reason for the verdict. Max 255 characters.",
+      "type": 3,
+      "required": true
+    }
+  ]
+}

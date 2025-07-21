@@ -25,10 +25,10 @@ public class CommandListener {
     private final Map<String, SlashCommand> commandMap;
     private final AppealSystemConfig appealSystemConfig;
 
-    public CommandListener(List<SlashCommand> slashCommands, GatewayDiscordClient client, AppealSystemConfig appealSystemConfig) {
+    public CommandListener(
+            List<SlashCommand> slashCommands, GatewayDiscordClient client, AppealSystemConfig appealSystemConfig) {
         this.appealSystemConfig = appealSystemConfig;
-        this.commandMap = slashCommands.stream()
-                .collect(Collectors.toMap(SlashCommand::getName, Function.identity()));
+        this.commandMap = slashCommands.stream().collect(Collectors.toMap(SlashCommand::getName, Function.identity()));
 
         client.on(ChatInputInteractionEvent.class, this::handle).subscribe();
     }
@@ -41,6 +41,13 @@ public class CommandListener {
             log.warn("Unknown command received: {}", commandName);
             return event.reply("Unknown command.").withEphemeral(true);
         }
+
+        log.info(
+                "Received command \"{}\" from user {} ({}) in guild {}",
+                commandName,
+                event.getInteraction().getUser().getUsername(),
+                event.getInteraction().getUser().getId().asString(),
+                event.getInteraction().getGuildId().map(Snowflake::asString).orElse("DM or unknown context"));
 
         return validateGuildContext(event)
                 .then(Mono.defer(() -> validateUserRoles(event, command.allowedRoles())))
@@ -60,7 +67,8 @@ public class CommandListener {
             return Mono.empty();
         }
 
-        String guildId = event.getInteraction().getGuildId()
+        String guildId = event.getInteraction()
+                .getGuildId()
                 .orElseThrow(() -> new IllegalStateException("Guild ID should be present at this point"))
                 .asString();
 
@@ -69,7 +77,15 @@ public class CommandListener {
             List<String> userRoleIds = getUserRoleIds(event);
 
             boolean hasPermission = requiredRoleIds.stream().anyMatch(userRoleIds::contains);
-            if (!hasPermission) return Mono.error(new MissingPermissionException(requiredAppealRoles));
+            if (!hasPermission) {
+                log.info(
+                        "User {} does not have required roles {} in guild {}",
+                        event.getInteraction().getUser().getId().asString(),
+                        requiredRoleIds,
+                        guildId);
+                return Mono.error(new MissingPermissionException(requiredAppealRoles));
+            }
+            ;
         } catch (IllegalArgumentException e) {
             log.error("Role configuration error for guild {}: {}", guildId, e.getMessage());
             return Mono.error(new ApplicationMisconfiguredException());
@@ -92,16 +108,17 @@ public class CommandListener {
     }
 
     private List<String> getUserRoleIds(ChatInputInteractionEvent event) {
-        return event.getInteraction().getMember()
-                .map(member -> member.getRoleIds().stream()
-                        .map(Snowflake::asString)
-                        .toList())
+        return event.getInteraction()
+                .getMember()
+                .map(member ->
+                        member.getRoleIds().stream().map(Snowflake::asString).toList())
                 .orElse(List.of());
     }
 
     private Mono<Void> executeCommand(ChatInputInteractionEvent event, SlashCommand command) {
         return command.handle(event)
-                .doOnSuccess(ignored -> log.debug("Command {} executed successfully for user {}",
+                .doOnSuccess(ignored -> log.debug(
+                        "Command {} executed successfully for user {}",
                         command.getName(),
                         event.getInteraction().getUser().getId().asString()));
     }

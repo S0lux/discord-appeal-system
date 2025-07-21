@@ -88,6 +88,13 @@ public class CrossroadsModalListener {
         String normalizedGameName = ModalAppealDiscord.getNormalizedGameNameFromModalId(event.getCustomId());
         PunishmentType punishmentType = ModalAppealDiscord.getPunishmentTypeFromModalId(event.getCustomId());
 
+        log.info(
+                "Received appeal submission for game '{}' by user '{}' ({}) with punishment type '{}'",
+                normalizedGameName,
+                event.getInteraction().getUser().getUsername(),
+                discordUserId,
+                punishmentType);
+
         return event.deferReply()
                 .withEphemeral(true)
                 .then(checkExistingPendingCases(normalizedGameName, punishmentType, discordUserId))
@@ -110,9 +117,18 @@ public class CrossroadsModalListener {
                                             channelId, discordUserId, robloxAccount.id(), robloxAccount.name()))
                                     .thenReturn(channelId));
                 })
-                .flatMap(channelId ->
-                        event.editReply("<@" + discordUserId + ">" + "Your appeal has been successfully submitted! "
-                                + "Please check the channel <#" + channelId.asString() + "> for details."))
+                .flatMap(channelId -> {
+                    log.info(
+                            "Successfully created appeal channel #{} for user {} ({}) in game '{}'. Took {} ms",
+                            channelId.asString(),
+                            event.getInteraction().getUser().getUsername(),
+                            discordUserId,
+                            normalizedGameName,
+                            Instant.now().toEpochMilli() - submittedAt.toEpochMilli());
+
+                    return event.editReply("<@" + discordUserId + "> " + "Your appeal has been successfully submitted! "
+                            + "Please check the channel <#" + channelId.asString() + "> for details.");
+                })
                 .then();
     }
 
@@ -123,6 +139,11 @@ public class CrossroadsModalListener {
 
         return existingCaseMono.flatMap(existingCase -> {
             if (existingCase.isPresent()) {
+                log.info(
+                        "User {} already has a pending case for game '{}' with punishment type '{}'.",
+                        discordUserId,
+                        gameName,
+                        punishmentType);
                 return Mono.error(new ExistingPendingCaseException());
             }
             return Mono.empty();

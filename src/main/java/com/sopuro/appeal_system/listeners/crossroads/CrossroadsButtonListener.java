@@ -11,6 +11,7 @@ import com.sopuro.appeal_system.exceptions.appeal.AppealDisabledException;
 import com.sopuro.appeal_system.exceptions.appeal.MissingGuildContextException;
 import com.sopuro.appeal_system.repositories.GuildConfigRepository;
 import com.sopuro.appeal_system.shared.enums.GuildConfig;
+import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
 import lombok.extern.slf4j.Slf4j;
@@ -89,7 +90,13 @@ public class CrossroadsButtonListener {
     }
 
     private Mono<Void> sendDiscordAppealSelectMenu(ButtonInteractionEvent event, String normalizedGameName) {
-        log.info("Sending Discord appeal select menu for game: {}", normalizedGameName);
+        log.info(
+                "Sending discord appeal select menu for user {} ({}) in game '{}' in guild {}",
+                event.getInteraction().getUser().getUsername(),
+                event.getInteraction().getUser().getId().asString(),
+                normalizedGameName,
+                event.getInteraction().getGuildId().map(Snowflake::asString).orElse("Unknown Guild"));
+
         return event.reply(new MenuAppealDiscord(normalizedGameName).createSelectMenu())
                 .then();
     }
