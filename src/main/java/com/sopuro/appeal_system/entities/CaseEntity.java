@@ -9,6 +9,7 @@ import org.hibernate.proxy.HibernateProxy;
 import org.springframework.data.annotation.CreatedDate;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -42,6 +43,9 @@ public class CaseEntity {
     @Enumerated(EnumType.STRING)
     private AppealVerdict appealVerdict;
 
+    @Column(name = "verdict_reason", columnDefinition = "TEXT")
+    private String verdictReason;
+
     @Column(name = "appeal_reason", nullable = false, columnDefinition = "TEXT")
     private String appealReason;
 
@@ -61,6 +65,9 @@ public class CaseEntity {
 
     @Column(name = "closed_at")
     private Instant closedAt;
+
+    @OneToMany(mappedBy = "appealCase", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<MessageLogEntity> messageLogs;
 
     @Override
     public final boolean equals(Object o) {
