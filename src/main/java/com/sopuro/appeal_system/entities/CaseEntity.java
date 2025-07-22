@@ -46,6 +46,9 @@ public class CaseEntity {
     @Column(name = "verdict_reason", columnDefinition = "TEXT")
     private String verdictReason;
 
+    @Column(name = "verdict_by")
+    private String verdictBy;
+
     @Column(name = "appeal_reason", nullable = false, columnDefinition = "TEXT")
     private String appealReason;
 

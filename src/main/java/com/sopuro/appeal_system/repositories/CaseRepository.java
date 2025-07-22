@@ -25,6 +25,9 @@ public interface CaseRepository extends JpaRepository<CaseEntity, UUID> {
     @Query("SELECT c FROM CaseEntity c WHERE c.channelId = :channelId AND c.appealVerdict = :appealVerdict")
     Optional<CaseEntity> findAppealCase(String channelId, AppealVerdict appealVerdict);
 
+    @Query("SELECT c FROM CaseEntity c WHERE c.channelId = :channelId")
+    Optional<CaseEntity> findAppealCaseByChannelId(String channelId);
+
     @Query("SELECT c FROM CaseEntity c WHERE c.appealerDiscordId = :appealerDiscordId "
             + "OR c.appealerRobloxId = :appealerRobloxId "
             + "ORDER BY c.appealedAt DESC")

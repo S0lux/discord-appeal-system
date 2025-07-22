@@ -30,7 +30,7 @@ public interface RoverClient {
             @RequestHeader("Authorization") String token);
 
     @DeleteExchange("/guilds/{guildId}/bans/{robloxUserId}")
-    void deleteBan(
+    Void deleteBan(
             @PathVariable String guildId,
             @PathVariable String robloxUserId,
             @RequestHeader("Authorization") String token);

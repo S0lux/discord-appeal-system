@@ -19,10 +19,7 @@ import com.sopuro.appeal_system.exceptions.appeal.MissingGuildContextException;
 import com.sopuro.appeal_system.exceptions.rover.RobloxAccountNotVerifiedException;
 import com.sopuro.appeal_system.repositories.CaseRepository;
 import com.sopuro.appeal_system.repositories.GuildConfigRepository;
-import com.sopuro.appeal_system.shared.enums.AppealPlatform;
-import com.sopuro.appeal_system.shared.enums.AppealVerdict;
-import com.sopuro.appeal_system.shared.enums.GuildConfig;
-import com.sopuro.appeal_system.shared.enums.PunishmentType;
+import com.sopuro.appeal_system.shared.enums.*;
 import com.sopuro.appeal_system.shared.permissions.RoleOverwrites;
 import com.sopuro.appeal_system.shared.utils.TokenHelper;
 import discord4j.common.util.Snowflake;
@@ -167,7 +164,8 @@ public class CrossroadsModalListener {
     }
 
     private Mono<OpenCloudRobloxProfileDto> retrieveUserRobloxAccount(AppealSubmissionContext context) {
-        final String roverToken = TokenHelper.retrieveRoverTokenForGame(context.normalizedGameName());
+        final String roverToken =
+                TokenHelper.retrieveRoverTokenForGame(context.normalizedGameName(), ServerType.APPEAL);
 
         return Mono.fromCallable(() -> roverClient.toRoblox(context.guildId(), context.discordUserId(), roverToken))
                 .subscribeOn(Schedulers.boundedElastic())

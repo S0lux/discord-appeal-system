@@ -172,7 +172,7 @@ public class CaseMessageListener {
 
     private Mono<Snowflake> getChannelIdFromUpdateEvent(MessageUpdateEvent event) {
         return event.getMessage()
-                .map(message -> message.getChannelId())
+                .map(Message::getChannelId)
                 .switchIfEmpty(Mono.error(new RuntimeException("Unable to get channel ID from update event")));
     }
 
