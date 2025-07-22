@@ -13,6 +13,10 @@ import discord4j.core.event.domain.message.MessageCreateEvent;
 import discord4j.core.event.domain.message.MessageDeleteEvent;
 import discord4j.core.event.domain.message.MessageEvent;
 import discord4j.core.event.domain.message.MessageUpdateEvent;
+import discord4j.core.object.entity.Message;
+import discord4j.core.object.entity.User;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -24,193 +28,224 @@ import java.util.UUID;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class CaseMessageListener {
     private final CaseRepository caseRepository;
     private final MessageLogRepository messageLogRepository;
     private final AppealSystemConfig appealSystemConfig;
+    private final GatewayDiscordClient gatewayDiscordClient;
 
-    public CaseMessageListener(
-            CaseRepository caseRepository,
-            GatewayDiscordClient gatewayDiscordClient,
-            MessageLogRepository messageLogRepository,
-            AppealSystemConfig appealSystemConfig) {
-        this.caseRepository = caseRepository;
-        this.messageLogRepository = messageLogRepository;
-        this.appealSystemConfig = appealSystemConfig;
-
+    @PostConstruct
+    public void initializeEventHandlers() {
         gatewayDiscordClient
                 .on(MessageEvent.class)
-                .flatMap(event -> {
-                    if (event instanceof MessageCreateEvent createEvent) {
-                        return handlePersistMessage(createEvent);
-                    } else if (event instanceof MessageUpdateEvent updateEvent) {
-                        return handleUpdateMessage(updateEvent);
-                    } else if (event instanceof MessageDeleteEvent deleteEvent) {
-                        return handleDeleteMessage(deleteEvent);
-                    }
-                    return Mono.empty();
-                })
-                .onErrorContinue((error, obj) -> {
-                    if (error instanceof MessageNotFromAppealServerException) {
-                        // Silently ignore messages not from appeal servers
-                        log.debug("Message not from appeal server: {}", error.getMessage());
-                    } else {
-                        log.error("Error processing message event: ", error);
-                    }
-                })
+                .filterWhen(event -> isFromBot(event).map(result -> !result))
+                .filterWhen(event -> isEphemeral(event).map(result -> !result))
+                .flatMap(this::routeMessageEvent)
+                .onErrorContinue(this::handleEventError)
                 .subscribe();
     }
 
-    private Mono<Void> handlePersistMessage(MessageCreateEvent event) {
-        return ensureMessageFromAppealServer(event)
-                .then(getCaseIdFromMessage(event))
-                .flatMap(caseId -> persistMessageForCase(event, caseId))
-                .then();
+    private Mono<Boolean> isFromBot(MessageEvent event) {
+        return switch (event) {
+            case MessageCreateEvent createEvent ->
+                Mono.just(createEvent.getMessage().getAuthor().map(User::isBot).orElse(false));
+            case MessageUpdateEvent updateEvent ->
+                updateEvent
+                        .getMessage()
+                        .map(message -> message.getAuthor().map(User::isBot).orElse(false));
+            case MessageDeleteEvent deleteEvent ->
+                deleteEvent
+                        .getMessage()
+                        .map(message ->
+                                Mono.just(message.getAuthor().map(User::isBot).orElse(false)))
+                        .orElse(Mono.just(false));
+            default -> Mono.just(false);
+        };
     }
 
-    private Mono<Void> handleUpdateMessage(MessageUpdateEvent event) {
-        return ensureMessageFromAppealServer(event)
-                .then(getCaseIdFromMessage(event))
-                .flatMap(caseId -> updateMessageForCase(event, caseId))
-                .then();
+    private Mono<Boolean> isEphemeral(MessageEvent event) {
+        return switch (event) {
+            case MessageCreateEvent createEvent ->
+                Mono.just(createEvent.getMessage().getFlags().contains(Message.Flag.EPHEMERAL));
+            case MessageUpdateEvent updateEvent ->
+                updateEvent.getMessage().flatMap(message -> Mono.just(
+                                message.getFlags().contains(Message.Flag.EPHEMERAL))
+                        .defaultIfEmpty(false));
+            case MessageDeleteEvent deleteEvent ->
+                deleteEvent
+                        .getMessage()
+                        .map(message -> Mono.just(message.getFlags().contains(Message.Flag.EPHEMERAL)))
+                        .orElse(Mono.just(false));
+            default -> Mono.just(false);
+        };
     }
 
-    private Mono<Void> handleDeleteMessage(MessageDeleteEvent event) {
-        return ensureMessageFromAppealServer(event)
-                .then(getCaseIdFromMessage(event))
-                .flatMap(ignored -> deleteLoggedMessage(event))
-                .then();
+    private Mono<Void> routeMessageEvent(MessageEvent event) {
+        return switch (event) {
+            case MessageCreateEvent createEvent -> handleMessageCreate(createEvent);
+            case MessageUpdateEvent updateEvent -> handleMessageUpdate(updateEvent);
+            case MessageDeleteEvent deleteEvent -> handleMessageDelete(deleteEvent);
+            default -> Mono.empty();
+        };
     }
 
-    private Mono<Void> ensureMessageFromAppealServer(MessageCreateEvent event) {
-        return event.getGuildId()
-                .map(guildId -> {
-                    if (appealSystemConfig.getAppealServerIds().contains(guildId.asString())) {
-                        return Mono.<Void>empty();
-                    }
-                    return Mono.<Void>error(new MessageNotFromAppealServerException(
-                            event.getMessage().getId().asString(), guildId.asString()));
-                })
-                .orElse(Mono.error(new MessageNotFromAppealServerException(
-                        event.getMessage().getId().asString(), "DM"))); // Handle DM messages
+    private void handleEventError(Throwable error, Object obj) {
+        if (error instanceof MessageNotFromAppealServerException) {
+            log.debug("Message not from appeal server: {}", error.getMessage());
+        } else {
+            log.error("Error processing message event for object {}: ", obj, error);
+        }
     }
 
-    private Mono<Void> ensureMessageFromAppealServer(MessageUpdateEvent event) {
-        return event.getGuildId()
-                .map(guildId -> {
-                    if (appealSystemConfig.getAppealServerIds().contains(guildId.asString())) {
-                        return Mono.<Void>empty();
-                    }
-                    return Mono.<Void>error(new MessageNotFromAppealServerException(
-                            event.getMessageId().asString(), guildId.asString()));
-                })
-                .orElse(Mono.error(new MessageNotFromAppealServerException(
-                        event.getMessageId().asString(), "DM"))); // Handle DM messages
+    private Mono<Void> handleMessageCreate(MessageCreateEvent event) {
+        return validateMessageFromAppealServer(event)
+                .then(findCaseByChannelId(event.getMessage().getChannelId()))
+                .flatMap(caseId -> persistMessage(event, caseId))
+                .onErrorResume(error -> {
+                    log.warn(
+                            "Failed to handle message create for message {}: {}",
+                            event.getMessage().getId().asString(),
+                            error.getMessage());
+                    return Mono.empty();
+                });
     }
 
-    private Mono<Void> ensureMessageFromAppealServer(MessageDeleteEvent event) {
-        return event.getGuildId()
-                .map(guildId -> {
-                    if (appealSystemConfig.getAppealServerIds().contains(guildId.asString())) {
-                        return Mono.<Void>empty();
-                    }
-                    return Mono.<Void>error(new MessageNotFromAppealServerException(
-                            event.getMessageId().asString(), guildId.asString()));
-                })
-                .orElse(Mono.error(new MessageNotFromAppealServerException(
-                        event.getMessageId().asString(), "DM"))); // Handle DM messages
+    private Mono<Void> handleMessageUpdate(MessageUpdateEvent event) {
+        return validateMessageFromAppealServer(event)
+                .then(getChannelIdFromUpdateEvent(event))
+                .flatMap(this::findCaseByChannelId)
+                .flatMap(caseId -> updateMessage(event, caseId))
+                .onErrorResume(error -> {
+                    log.warn(
+                            "Failed to handle message update for message {}: {}",
+                            event.getMessageId().asString(),
+                            error.getMessage());
+                    return Mono.empty();
+                });
     }
 
-    private Mono<UUID> getCaseIdFromMessage(MessageCreateEvent event) {
-        Snowflake channelId = event.getMessage().getChannelId();
+    private Mono<Void> handleMessageDelete(MessageDeleteEvent event) {
+        return validateMessageFromAppealServer(event).then(deleteMessage(event)).onErrorResume(error -> {
+            log.warn(
+                    "Failed to handle message delete for message {}: {}",
+                    event.getMessageId().asString(),
+                    error.getMessage());
+            return Mono.empty();
+        });
+    }
+
+    private Mono<Void> validateMessageFromAppealServer(MessageEvent event) {
+        String messageId = getMessageId(event);
+        Optional<Snowflake> guildId = getGuildId(event);
+
+        if (guildId.isEmpty()) {
+            return Mono.error(new MessageNotFromAppealServerException(messageId, "DM"));
+        }
+
+        String guildIdString = guildId.get().asString();
+        if (!appealSystemConfig.getAppealServerIds().contains(guildIdString)) {
+            return Mono.error(new MessageNotFromAppealServerException(messageId, guildIdString));
+        }
+
+        return Mono.empty();
+    }
+
+    private String getMessageId(MessageEvent event) {
+        return switch (event) {
+            case MessageCreateEvent createEvent ->
+                createEvent.getMessage().getId().asString();
+            case MessageUpdateEvent updateEvent -> updateEvent.getMessageId().asString();
+            case MessageDeleteEvent deleteEvent -> deleteEvent.getMessageId().asString();
+            default -> "unknown";
+        };
+    }
+
+    private Optional<Snowflake> getGuildId(MessageEvent event) {
+        return switch (event) {
+            case MessageCreateEvent createEvent -> createEvent.getGuildId();
+            case MessageUpdateEvent updateEvent -> updateEvent.getGuildId();
+            case MessageDeleteEvent deleteEvent -> deleteEvent.getGuildId();
+            default -> Optional.empty();
+        };
+    }
+
+    private Mono<Snowflake> getChannelIdFromUpdateEvent(MessageUpdateEvent event) {
+        return event.getMessage()
+                .map(message -> message.getChannelId())
+                .switchIfEmpty(Mono.error(new RuntimeException("Unable to get channel ID from update event")));
+    }
+
+    private Mono<UUID> findCaseByChannelId(Snowflake channelId) {
         return Mono.fromCallable(() -> caseRepository.findAppealCase(channelId.asString(), AppealVerdict.PENDING))
                 .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(optionalCase ->
-                        optionalCase.map(entity -> Mono.just(entity.getId())).orElse(Mono.empty()));
+                .flatMap(optionalCase -> optionalCase
+                        .map(Mono::just)
+                        .map(caseMono -> caseMono.map(CaseEntity::getId))
+                        .orElse(Mono.empty()));
     }
 
-    private Mono<UUID> getCaseIdFromMessage(MessageUpdateEvent event) {
-        Mono<Snowflake> channelIdMono = event.getMessage().flatMap(message -> Mono.just(message.getChannelId()));
-        return channelIdMono
-                .flatMap(channelId -> Mono.fromCallable(
-                                () -> caseRepository.findAppealCase(channelId.asString(), AppealVerdict.PENDING))
-                        .subscribeOn(Schedulers.boundedElastic()))
-                .flatMap(appealCase ->
-                        appealCase.map(entity -> Mono.just(entity.getId())).orElse(Mono.empty()));
-    }
-
-    private Mono<UUID> getCaseIdFromMessage(MessageDeleteEvent event) {
-        Snowflake channelId = event.getChannelId();
-        return Mono.fromCallable(() -> caseRepository.findAppealCase(channelId.asString(), AppealVerdict.PENDING))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(optionalCase ->
-                        optionalCase.map(entity -> Mono.just(entity.getId())).orElse(Mono.empty()));
-    }
-
-    private Mono<Void> persistMessageForCase(MessageCreateEvent event, UUID caseId) {
-        String messageId = event.getMessage().getId().asString();
-        String messageContent = event.getMessage().getContent();
-        Instant messageCreationTime = event.getMessage().getTimestamp();
-        Instant messageEditedTime = event.getMessage().getEditedTimestamp().orElse(null);
-        String authorId = event.getMessage()
-                .getAuthor()
-                .map(author -> author.getId().asString())
-                .orElse("unknown");
-
+    private Mono<Void> persistMessage(MessageCreateEvent event, UUID caseId) {
         return Mono.fromCallable(() -> {
-                    CaseEntity appealCase = caseRepository.getReferenceById(caseId);
-
-                    // TODO: Add support for attachments(?) and components
-
-                    MessageLogEntity messageLog = MessageLogEntity.builder()
-                            .id(messageId)
-                            .appealCase(appealCase)
-                            .authorId(authorId)
-                            .content(messageContent)
-                            .creationTimestamp(messageCreationTime)
-                            .lastEditedTimestamp(messageEditedTime)
-                            .build();
-
+                    MessageLogEntity messageLog = buildMessageLogEntity(event, caseId);
                     messageLogRepository.save(messageLog);
+                    log.debug("Persisted message {} for case {}", messageLog.getId(), caseId);
                     return null;
                 })
                 .subscribeOn(Schedulers.boundedElastic())
                 .then();
     }
 
-    private Mono<Void> updateMessageForCase(MessageUpdateEvent event, UUID caseId) {
-        return event
-                .getMessage()
-                .flatMap(message -> {
-                    String messageId = message.getId().asString();
-                    String messageContent = message.getContent();
-                    Instant messageEditedTime = message.getEditedTimestamp().orElse(null);
+    private MessageLogEntity buildMessageLogEntity(MessageCreateEvent event, UUID caseId) {
+        var message = event.getMessage();
+        CaseEntity appealCase = caseRepository.getReferenceById(caseId);
 
-                    return Mono.fromCallable(() -> {
-                        Optional<MessageLogEntity> appealCase = messageLogRepository.findByIdAndCaseId(messageId, caseId);
-                        if (appealCase.isPresent()) {
-                            MessageLogEntity messageLog = appealCase.get();
-                            messageLog.setContent(messageContent);
-                            messageLog.setLastEditedTimestamp(messageEditedTime);
-                            messageLogRepository.save(messageLog);
-                        } else {
-                            log.warn("Message log not found for ID to be updated: {}", messageId);
-                        }
+        return MessageLogEntity.builder()
+                .id(message.getId().asString())
+                .appealCase(appealCase)
+                .authorId(message.getAuthor()
+                        .map(author -> author.getId().asString())
+                        .orElse("unknown"))
+                .content(message.getContent())
+                .creationTimestamp(message.getTimestamp())
+                .lastEditedTimestamp(message.getEditedTimestamp().orElse(null))
+                .build();
+    }
 
-                        return null;
-                    }).subscribeOn(Schedulers.boundedElastic());
-                })
+    private Mono<Void> updateMessage(MessageUpdateEvent event, UUID caseId) {
+        return event.getMessage()
+                .flatMap(message -> Mono.fromCallable(() -> {
+                            String messageId = message.getId().asString();
+                            String messageContent = message.getContent();
+                            Instant messageEditedTime =
+                                    message.getEditedTimestamp().orElse(null);
+
+                            Optional<MessageLogEntity> messageLogOpt =
+                                    messageLogRepository.findByIdAndCaseId(messageId, caseId);
+
+                            if (messageLogOpt.isPresent()) {
+                                MessageLogEntity messageLog = messageLogOpt.get();
+                                messageLog.setContent(messageContent);
+                                messageLog.setLastEditedTimestamp(messageEditedTime);
+                                messageLogRepository.save(messageLog);
+                                log.debug("Updated message {} for case {}", messageId, caseId);
+                            } else {
+                                log.warn("Message log not found for update - ID: {}, Case: {}", messageId, caseId);
+                            }
+                            return null;
+                        })
+                        .subscribeOn(Schedulers.boundedElastic()))
                 .then();
     }
 
-    private Mono<Void> deleteLoggedMessage(MessageDeleteEvent event) {
+    private Mono<Void> deleteMessage(MessageDeleteEvent event) {
         return Mono.fromCallable(() -> {
                     String messageId = event.getMessageId().asString();
-                    Optional<MessageLogEntity> messageLog = messageLogRepository.findById(messageId);
-                    if (messageLog.isPresent()) {
-                        messageLogRepository.delete(messageLog.get());
-                    } else {
-                        log.warn("Message log not found for ID to be deleted: {}", messageId);
+                    Optional<MessageLogEntity> messageLogOpt = messageLogRepository.findById(messageId);
+
+                    if (messageLogOpt.isPresent()) {
+                        messageLogRepository.delete(messageLogOpt.get());
+                        log.debug("Deleted message log for ID: {}", messageId);
                     }
                     return null;
                 })

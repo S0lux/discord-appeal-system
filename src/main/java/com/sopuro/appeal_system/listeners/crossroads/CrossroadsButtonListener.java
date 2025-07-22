@@ -14,6 +14,9 @@ import com.sopuro.appeal_system.shared.enums.GuildConfig;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
+import discord4j.core.object.entity.User;
+import jakarta.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -23,92 +26,151 @@ import java.util.Optional;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class CrossroadsButtonListener {
+    private static final String CROSSROADS_CUSTOM_ID_PREFIX = "crossroads:";
+    private static final String GENERIC_ERROR_MESSAGE = "An error occurred while processing your request. Please try again later.";
+    private static final String SERVER_NOT_CONFIGURED_MESSAGE = "This server is not configured for the appeal system.";
+
+    private final GatewayDiscordClient gatewayDiscordClient;
     private final AppealSystemConfig appealSystemConfig;
     private final GuildConfigRepository guildConfigRepository;
 
-    public CrossroadsButtonListener(
-            GatewayDiscordClient client,
-            AppealSystemConfig appealSystemConfig,
-            GuildConfigRepository guildConfigRepository) {
-        this.appealSystemConfig = appealSystemConfig;
-        this.guildConfigRepository = guildConfigRepository;
-
-        client.on(ButtonInteractionEvent.class)
-                .filter(event -> event.getCustomId().startsWith("crossroads:"))
-                .flatMap(event -> handleCrossroadsButtonClick(event)
-                        .onErrorResume(throwable -> handleCommandError(event, throwable)))
+    @PostConstruct
+    public void initializeEventHandlers() {
+        gatewayDiscordClient
+                .on(ButtonInteractionEvent.class)
+                .filter(this::isCrossroadsButton)
+                .flatMap(this::handleButtonInteraction)
+                .onErrorContinue(this::handleEventError)
                 .subscribe();
     }
 
-    private Mono<Void> handleCrossroadsButtonClick(ButtonInteractionEvent event) {
-        return Mono.defer(() -> event.getInteraction()
-                        .getGuildId()
-                        .map(Mono::just)
-                        .orElse(Mono.error(new MissingGuildContextException())))
-                .flatMap(guildId -> {
-                    if (!appealSystemConfig.getAppealServerIds().contains(guildId.asString())) {
-                        log.warn(
-                                "Guild with ID {} is not configured in the appeal system. Ignoring button interaction...",
-                                guildId.asString());
-                        return event.reply("This server is not configured for the appeal system.")
-                                .withEphemeral(true)
-                                .then();
-                    }
-
-                    GameConfigDto gameConfig = appealSystemConfig.getGameConfigByServerId(guildId.asString());
-
-                    return checkAppealEnabled(gameConfig.appealServerId()).then(Mono.defer(() -> {
-                        String customId = event.getCustomId();
-                        // Discord appeal button handling
-                        if (customId.startsWith(PanelCommandHandler.CROSSROADS_DISCORD_BTN_PREFIX)) {
-                            return sendDiscordAppealSelectMenu(event, gameConfig.normalizedName());
-                        }
-                        // In-game appeal button handling
-                        else if (customId.startsWith(PanelCommandHandler.CROSSROADS_IN_GAME_BTN_PREFIX)) {
-                            return event.presentModal(new ModalAppealGame(gameConfig.normalizedName()).createModal());
-                        }
-                        // Unknown button handling
-                        else {
-                            return Mono.empty();
-                        }
-                    }));
-                });
+    private void handleEventError(Throwable error, Object event) {
+        if (event instanceof ButtonInteractionEvent buttonEvent) {
+            log.error("Error processing button interaction event for custom ID '{}': {}",
+                    buttonEvent.getCustomId(), error.getMessage(), error);
+        } else {
+            log.error("Error processing button interaction event: {}", error.getMessage(), error);
+        }
     }
 
-    private Mono<Void> checkAppealEnabled(String appealServerId) {
-        Mono<Optional<GuildConfigEntity>> guildConfigMono = Mono.fromCallable(() ->
+    private boolean isCrossroadsButton(ButtonInteractionEvent event) {
+        return event.getCustomId().startsWith(CROSSROADS_CUSTOM_ID_PREFIX);
+    }
+
+    private Mono<Void> handleButtonInteraction(ButtonInteractionEvent event) {
+        return validateGuildContext(event)
+                .flatMap(guildId -> processButtonClick(event, guildId))
+                .onErrorResume(error -> handleInteractionError(event, error));
+    }
+
+    private Mono<Snowflake> validateGuildContext(ButtonInteractionEvent event) {
+        return event.getInteraction()
+                .getGuildId()
+                .map(Mono::just)
+                .orElse(Mono.error(new MissingGuildContextException()));
+    }
+
+    private Mono<Void> processButtonClick(ButtonInteractionEvent event, Snowflake guildId) {
+        String guildIdString = guildId.asString();
+
+        if (!isGuildConfigured(guildIdString)) {
+            log.warn("Guild {} is not configured for appeals. Rejecting button interaction from user {}",
+                    guildIdString, getUserInfo(event));
+            return replyWithError(event, SERVER_NOT_CONFIGURED_MESSAGE);
+        }
+
+        GameConfigDto gameConfig = appealSystemConfig.getGameConfigByServerId(guildIdString);
+
+        return validateAppealEnabled(gameConfig.appealServerId())
+                .then(routeButtonAction(event, gameConfig));
+    }
+
+    private boolean isGuildConfigured(String guildId) {
+        return appealSystemConfig.getAppealServerIds().contains(guildId);
+    }
+
+    private String getUserInfo(ButtonInteractionEvent event) {
+        User user = event.getInteraction().getUser();
+        return String.format("%s (%s)", user.getUsername(), user.getId().asString());
+    }
+
+    private Mono<Void> validateAppealEnabled(String appealServerId) {
+        return Mono.fromCallable(() ->
                         guildConfigRepository.findByGuildIdAndConfigKey(appealServerId, GuildConfig.APPEAL_ENABLED))
-                .subscribeOn(Schedulers.boundedElastic());
-
-        return guildConfigMono.flatMap(optional -> {
-            if (optional.isEmpty() || Boolean.parseBoolean(optional.get().getConfigValue())) {
-                return Mono.empty();
-            }
-            return Mono.error(new AppealDisabledException());
-        });
+                .subscribeOn(Schedulers.boundedElastic())
+                .flatMap(this::checkAppealEnabledConfig);
     }
 
-    private Mono<Void> sendDiscordAppealSelectMenu(ButtonInteractionEvent event, String normalizedGameName) {
-        log.info(
-                "Sending discord appeal select menu for user {} ({}) in game '{}' in guild {}",
-                event.getInteraction().getUser().getUsername(),
-                event.getInteraction().getUser().getId().asString(),
-                normalizedGameName,
-                event.getInteraction().getGuildId().map(Snowflake::asString).orElse("Unknown Guild"));
+    private Mono<Void> checkAppealEnabledConfig(Optional<GuildConfigEntity> configOpt) {
+        if (configOpt.isEmpty()) {
+            // Appeals enabled by default if config doesn't exist
+            return Mono.empty();
+        }
+
+        boolean isEnabled = Boolean.parseBoolean(configOpt.get().getConfigValue());
+        return isEnabled ? Mono.empty() : Mono.error(new AppealDisabledException());
+    }
+
+    private Mono<Void> routeButtonAction(ButtonInteractionEvent event, GameConfigDto gameConfig) {
+        String customId = event.getCustomId();
+        String normalizedGameName = gameConfig.normalizedName();
+
+        if (customId.startsWith(PanelCommandHandler.CROSSROADS_DISCORD_BTN_PREFIX)) {
+            return handleDiscordAppealButton(event, normalizedGameName);
+        } else if (customId.startsWith(PanelCommandHandler.CROSSROADS_IN_GAME_BTN_PREFIX)) {
+            return handleInGameAppealButton(event, normalizedGameName);
+        } else {
+            log.warn("Unknown crossroads button custom ID: {} from user {}", customId, getUserInfo(event));
+            return Mono.empty();
+        }
+    }
+
+    private Mono<Void> handleDiscordAppealButton(ButtonInteractionEvent event, String normalizedGameName) {
+        String userInfo = getUserInfo(event);
+        String guildId = event.getInteraction().getGuildId().map(Snowflake::asString).orElse("Unknown");
+
+        log.info("Processing Discord appeal request for user {} in game '{}' (guild: {})",
+                userInfo, normalizedGameName, guildId);
 
         return event.reply(new MenuAppealDiscord(normalizedGameName).createSelectMenu())
+                .doOnSuccess(ignored -> log.debug("Successfully sent Discord appeal menu to user {}", userInfo))
                 .then();
     }
 
-    private Mono<Void> handleCommandError(ButtonInteractionEvent event, Throwable error) {
-        if (error instanceof AppealException)
-            return event.reply(error.getMessage()).withEphemeral(true);
+    private Mono<Void> handleInGameAppealButton(ButtonInteractionEvent event, String normalizedGameName) {
+        String userInfo = getUserInfo(event);
+        String guildId = event.getInteraction().getGuildId().map(Snowflake::asString).orElse("Unknown");
 
-        log.error("Error handling button interaction: {}", error.getMessage(), error);
+        log.info("Processing in-game appeal request for user {} in game '{}' (guild: {})",
+                userInfo, normalizedGameName, guildId);
 
-        return event.reply("An error occurred while processing your command. Please try again later.")
+        return event.presentModal(new ModalAppealGame(normalizedGameName).createModal())
+                .doOnSuccess(ignored -> log.debug("Successfully presented in-game appeal modal to user {}", userInfo));
+    }
+
+    private Mono<Void> handleInteractionError(ButtonInteractionEvent event, Throwable error) {
+        String userInfo = getUserInfo(event);
+
+        if (error instanceof AppealException appealException) {
+            log.warn("Appeal exception for user {}: {}", userInfo, appealException.getMessage());
+            return replyWithError(event, appealException.getMessage());
+        }
+
+        log.error("Unexpected error processing button interaction for user {}: {}",
+                userInfo, error.getMessage(), error);
+        return replyWithError(event, GENERIC_ERROR_MESSAGE);
+    }
+
+    private Mono<Void> replyWithError(ButtonInteractionEvent event, String message) {
+        return event.reply(message)
                 .withEphemeral(true)
+                .onErrorResume(replyError -> {
+                    log.error("Failed to send error reply to user {}: {}",
+                            getUserInfo(event), replyError.getMessage());
+                    return Mono.empty();
+                })
                 .then();
     }
 }
