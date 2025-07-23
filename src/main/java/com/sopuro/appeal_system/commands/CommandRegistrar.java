@@ -4,13 +4,16 @@ import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import discord4j.common.JacksonResources;
 import discord4j.discordjson.json.ApplicationCommandRequest;
 import discord4j.rest.RestClient;
+import discord4j.rest.http.client.ClientException;
 import discord4j.rest.service.ApplicationService;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -53,7 +56,8 @@ public class CommandRegistrar implements ApplicationRunner {
     }
 
     private long getApplicationId() {
-        return discordRestClient.getApplicationId()
+        return discordRestClient
+                .getApplicationId()
                 .timeout(REGISTRATION_TIMEOUT)
                 .doOnError(TimeoutException.class, e -> log.error("Timeout while fetching application ID"))
                 .blockOptional()
@@ -74,7 +78,8 @@ public class CommandRegistrar implements ApplicationRunner {
         return Flux.fromArray(resources)
                 .flatMap(resource -> {
                     try {
-                        ApplicationCommandRequest request = d4jMapper.getObjectMapper()
+                        ApplicationCommandRequest request = d4jMapper
+                                .getObjectMapper()
                                 .readValue(resource.getInputStream(), ApplicationCommandRequest.class);
                         log.debug("Loaded command: {}", request.name());
                         return Mono.just(request);
@@ -92,30 +97,47 @@ public class CommandRegistrar implements ApplicationRunner {
                 .filter(command -> APPEAL_ONLY_COMMANDS.contains(command.name()))
                 .toList();
 
-        log.info("Registering {} appeal-only commands to {} guild(s)",
-                appealOnlyCommands.size(), appealSystemConfig.getAppealServerIds().size());
+        log.info(
+                "Registering {} appeal-only commands to {} guild(s)",
+                appealOnlyCommands.size(),
+                appealSystemConfig.getAppealServerIds().size());
 
         final ApplicationService applicationService = discordRestClient.getApplicationService();
 
         Flux.fromIterable(appealSystemConfig.getAppealServerIds())
-                .flatMap(guildId -> registerCommandsForGuild(applicationService, applicationId, guildId, appealOnlyCommands))
+                .flatMap(guildId ->
+                        registerCommandsForGuild(applicationService, applicationId, guildId, appealOnlyCommands))
                 .doOnComplete(() -> log.info("All appeal-only commands registered successfully"))
                 .doOnError(error -> log.error("Some appeal-only command registrations failed", error))
                 .blockLast();
     }
 
-    private Mono<Void> registerCommandsForGuild(ApplicationService applicationService, long applicationId,
-                                                String guildId, List<ApplicationCommandRequest> commands) {
+    private Mono<Void> registerCommandsForGuild(
+            ApplicationService applicationService,
+            long applicationId,
+            String guildId,
+            List<ApplicationCommandRequest> commands) {
         return applicationService
                 .bulkOverwriteGuildApplicationCommand(applicationId, Long.parseLong(guildId), commands)
                 .timeout(REGISTRATION_TIMEOUT)
                 .doOnSubscribe(sub -> log.debug("Registering {} commands for guild: {}", commands.size(), guildId))
                 .doOnComplete(() -> log.info("Successfully registered commands for guild: {}", guildId))
-                .doOnError(TimeoutException.class,
+                .doOnError(
+                        TimeoutException.class,
                         error -> log.error("Timeout registering commands for guild: {}", guildId))
-                .doOnError(NumberFormatException.class,
-                        error -> log.error("Invalid guild ID format: {}", guildId))
-                .doOnError(error -> !(error instanceof TimeoutException || error instanceof NumberFormatException),
+                .doOnError(NumberFormatException.class, error -> log.error("Invalid guild ID format: {}", guildId))
+                .doOnError(ClientException.class, error -> {
+                    switch (error.getStatus().code()) {
+                        case 400 -> log.error("Bad request error while registering commands for guild: {}", guildId);
+                        case 403 -> log.error("Bot is not in the server to register commands for guild: {}", guildId);
+                        default ->
+                            log.error("Unexpected error while registering commands for guild: {}", guildId, error);
+                    }
+                })
+                .doOnError(
+                        error -> !(error instanceof TimeoutException
+                                || error instanceof NumberFormatException
+                                || error instanceof ClientException),
                         error -> log.error("Failed to register commands for guild: {}", guildId, error))
                 .onErrorResume(error -> {
                     log.warn("Continuing with remaining guilds after failure for guild: {}", guildId);
@@ -138,7 +160,8 @@ public class CommandRegistrar implements ApplicationRunner {
                 .timeout(REGISTRATION_TIMEOUT)
                 .doOnComplete(() -> log.info("Successfully registered {} global commands", globalCommands.size()))
                 .doOnError(TimeoutException.class, error -> log.error("Timeout while registering global commands"))
-                .doOnError(error -> !(error instanceof TimeoutException),
+                .doOnError(
+                        error -> !(error instanceof TimeoutException),
                         error -> log.error("Failed to register global commands", error))
                 .subscribe();
     }
