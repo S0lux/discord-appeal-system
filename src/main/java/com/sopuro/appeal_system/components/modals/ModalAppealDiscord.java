@@ -27,6 +27,17 @@ public record ModalAppealDiscord(String normalizedGameName) {
         return PunishmentType.valueOf(parts[0]);
     }
 
+    /**
+     * Prefer to use AppealSystemConfig.getGameConfigByServerId(String serverId) for game name normalization
+     * to ensure consistency across the application.
+     * <p>
+     * Only use this method if you can't access the AppealSystemConfig directly.
+     *
+     * @param modalId The modal ID to extract the game name from.
+     * @return The normalized game name.
+     * @throws IllegalArgumentException if the modal ID is invalid or does not match the expected format.
+     */
+    @Deprecated(since = "1.0", forRemoval = false)
     public static String getNormalizedGameNameFromModalId(String modalId) {
         if (modalId == null || !modalId.startsWith(DISCORD_MODAL_PREFIX))
             throw new IllegalArgumentException("Invalid modal ID: " + modalId);

@@ -11,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.core.annotation.Order;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.http.HttpStatus;
@@ -25,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 @Component
+@DependsOn("configurationIntegrityChecker")
 @RequiredArgsConstructor
 @Slf4j
 public class CommandRegistrar implements ApplicationRunner {

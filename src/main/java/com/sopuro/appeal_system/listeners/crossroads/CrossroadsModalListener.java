@@ -116,7 +116,7 @@ public class CrossroadsModalListener {
                 guildId,
                 user.getId().asString(),
                 user.getUsername(),
-                ModalAppealDiscord.getNormalizedGameNameFromModalId(customId),
+                appealSystemConfig.getGameConfigByServerId(guildId).normalizedName(),
                 ModalAppealDiscord.getPunishmentTypeFromModalId(customId),
                 submittedAt);
     }
@@ -279,8 +279,11 @@ public class CrossroadsModalListener {
     }
 
     private Mono<Void> sendCaseDetailsMessage(Snowflake channelId, ModalSubmitInteractionEvent event, UUID caseId) {
+        String gameName = appealSystemConfig
+                .getGameConfigByServerId(event.getInteraction().getGuildId().orElseThrow(MissingGuildContextException::new).asString())
+                .normalizedName();
         return getTextChannel(channelId)
-                .flatMap(channel -> channel.createMessage(CaseInfoMessage.create(event, caseId.toString())))
+                .flatMap(channel -> channel.createMessage(CaseInfoMessage.create(event, caseId.toString(), gameName)))
                 .then();
     }
 

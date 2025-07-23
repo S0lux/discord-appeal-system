@@ -11,8 +11,7 @@ import discord4j.core.spec.MessageCreateSpec;
 
 public class CaseInfoMessage {
 
-    public static MessageCreateSpec create(ModalSubmitInteractionEvent event, String caseId) {
-        String gameName = ModalAppealDiscord.getNormalizedGameNameFromModalId(event.getCustomId());
+    public static MessageCreateSpec create(ModalSubmitInteractionEvent event, String caseId, String gameName) {
         PunishmentType punishmentType = ModalAppealDiscord.getPunishmentTypeFromModalId(event.getCustomId());
 
         String punishmentReason = ModalAppealDiscord.getPunishmentReason(event);
