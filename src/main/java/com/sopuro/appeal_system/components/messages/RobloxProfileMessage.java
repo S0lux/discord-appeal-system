@@ -6,22 +6,11 @@ import discord4j.common.util.TimestampFormat;
 import discord4j.core.object.component.*;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.MessageCreateSpec;
-import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class RobloxProfileMessage {
-
-    @Value("${appeal-system.emojis.roblox}")
-    private String robloxEmojiValue;
-
     private static String robloxEmoji;
-
-    @PostConstruct
-    public void init() {
-        robloxEmoji = robloxEmojiValue;
-    }
 
     public static MessageCreateSpec create(
             OpenCloudRobloxProfileDto robloxProfileDto, OpenCloudRobloxAvatarDto robloxAvatarDto) {

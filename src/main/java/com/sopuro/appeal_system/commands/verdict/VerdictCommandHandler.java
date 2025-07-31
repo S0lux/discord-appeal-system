@@ -5,6 +5,7 @@ import com.sopuro.appeal_system.clients.opencloud.dtos.OpenCloudRobloxAvatarDto;
 import com.sopuro.appeal_system.clients.opencloud.dtos.OpenCloudRobloxProfileDto;
 import com.sopuro.appeal_system.clients.rover.RoverClient;
 import com.sopuro.appeal_system.commands.SlashCommand;
+import com.sopuro.appeal_system.components.messages.CaseLogDirectMessage;
 import com.sopuro.appeal_system.components.messages.CaseLogMessage;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
@@ -33,6 +34,7 @@ import discord4j.rest.util.PermissionSet;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import reactor.core.publisher.Mono;
@@ -54,6 +56,9 @@ public class VerdictCommandHandler implements SlashCommand {
     private final GuildConfigRepository guildConfigRepository;
     private final OpenCloudClient openCloudClient;
     private final RoverClient roverClient;
+
+    @Value("${appeal-system.front-end.domain}")
+    private String domainName;
 
     @Override
     public String getName() {
@@ -107,8 +112,11 @@ public class VerdictCommandHandler implements SlashCommand {
                                         .thenReturn(updatedCase);
                             });
                 })
-                .flatMap(caseEntity -> moveCaseChannelToClosed(
-                        Snowflake.of(caseEntity.getChannelId()), Snowflake.of(caseEntity.getAppealerDiscordId())))
+                .flatMap(caseEntity -> Mono.when(
+                        moveCaseChannelToClosed(
+                                Snowflake.of(caseEntity.getChannelId()), Snowflake.of(caseEntity.getAppealerDiscordId())),
+                        sendCaseLogDM(Snowflake.of(caseEntity.getAppealerDiscordId()), caseEntity)
+                ))
                 .then();
     }
 
@@ -279,6 +287,16 @@ public class VerdictCommandHandler implements SlashCommand {
                                 }
                             });
                 })
+                .then();
+    }
+
+    private Mono<Void> sendCaseLogDM(Snowflake recipientId, CaseEntity caseEntity) {
+        return gatewayDiscordClient
+                .getUserById(recipientId)
+                .flatMap(user -> user.getPrivateChannel()
+                        .flatMap(privateChannel -> privateChannel.createMessage(
+                                CaseLogDirectMessage.create(caseEntity, domainName)
+                        )))
                 .then();
     }
 

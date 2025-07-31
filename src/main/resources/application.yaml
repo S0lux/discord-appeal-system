@@ -12,8 +12,8 @@ spring:
     url: ${POSTGRES_URL:jdbc:postgresql://localhost:5432/appeal_system_db}
 
 appeal-system:
-  emojis:
-    roblox: <:name:id>
+  front-end:
+    domain:
 
   games:
     - name:
