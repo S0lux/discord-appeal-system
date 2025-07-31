@@ -27,12 +27,12 @@ public class CaseHistoryMessage {
         } else {
             caseEntities.stream().limit(10).forEach(caseEntity -> {
                 String caseInfo = String.format(
-                        "- **`%s`** | %s | %s | %s | %s",
+                        "- `%s` | %s | %s | %s | %s",
                         caseEntity.getId(),
                         caseEntity.getGame(),
                         caseEntity.getPunishmentType(),
                         caseEntity.getAppealVerdict(),
-                        TimestampFormat.LONG_DATE_TIME.format(caseEntity.getAppealedAt()));
+                        TimestampFormat.SHORT_DATE.format(caseEntity.getAppealedAt()));
                 textDisplays.add(TextDisplay.of(caseInfo));
             });
         }

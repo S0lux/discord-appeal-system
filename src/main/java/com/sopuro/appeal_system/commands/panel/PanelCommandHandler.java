@@ -51,12 +51,11 @@ public class PanelCommandHandler implements SlashCommand {
         ApplicationCommandInteractionOption option = event.getOptions().getFirst();
 
         if (option == null)
-            return event.reply("Please provide a valid option for the panel command.").withEphemeral(true);
+            return event.editReply("Please provide a valid option for the panel command.").then();
 
-        if (option.getName().equals("create"))
-            return handleCreatePanel(event);
+        if (option.getName().equals("create")) return handleCreatePanel(event);
 
-        return event.reply("Unknown option: " + option.getName()).withEphemeral(true);
+        return event.editReply("Unknown option: " + option.getName()).then();
     }
 
     private Mono<Void> handleCreatePanel(ChatInputInteractionEvent event) {
@@ -72,19 +71,21 @@ public class PanelCommandHandler implements SlashCommand {
                 .map(PanelType::valueOf)
                 .orElseThrow();
 
-        MessageCreateSpec panelMessageSpec = switch (panelType) {
-            case PanelType.CROSSROADS -> MessageCreateSpec
-                    .create()
-                    .withFlags(Message.Flag.IS_COMPONENTS_V2)
-                    .withComponents(createCrossroadsPanel(guildId.get().asString()));
-        };
+        MessageCreateSpec panelMessageSpec =
+                switch (panelType) {
+                    case PanelType.CROSSROADS ->
+                        MessageCreateSpec.create()
+                                .withFlags(Message.Flag.IS_COMPONENTS_V2)
+                                .withComponents(
+                                        createCrossroadsPanel(guildId.get().asString()));
+                };
 
-        return event.deferReply().withEphemeral(true)
-                .then(gatewayDiscordClient.getChannelById(channelId)
-                        .cast(TextChannel.class)
-                        .flatMap(textChannel -> textChannel.createMessage(panelMessageSpec))
-                        .then(event.editReply("Panel created successfully!"))
-                        .onErrorResume(error -> event.editReply("Failed to create panel: " + error.getMessage())))
+        return gatewayDiscordClient
+                .getChannelById(channelId)
+                .cast(TextChannel.class)
+                .flatMap(textChannel -> textChannel.createMessage(panelMessageSpec))
+                .then(event.editReply("Panel created successfully!"))
+                .onErrorResume(error -> event.editReply("Failed to create panel: " + error.getMessage()))
                 .then();
     }
 
@@ -92,23 +93,23 @@ public class PanelCommandHandler implements SlashCommand {
         GameConfigDto gameConfig = appealSystemConfig.getGames().stream()
                 .filter(gameConfigDto -> gameConfigDto.appealServerId().equals(serverId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("This server is not configured to be an APPEAL server."));
+                .orElseThrow(
+                        () -> new IllegalArgumentException("This server is not configured to be an APPEAL server."));
 
         Section textSection = Section.of(Thumbnail.of(UnfurledMediaItem.of(gameConfig.image())));
 
         // A section can only have one thumbnail and at most three text displays.
         for (int i = 0; i < (Math.min(gameConfig.crossroadDescription().size(), 3)); i++) {
             textSection = textSection.withAddedComponent(
-                    TextDisplay.of(gameConfig.crossroadDescription().get(i))
-            );
+                    TextDisplay.of(gameConfig.crossroadDescription().get(i)));
         }
 
         return Container.of(
-                textSection, Separator.of(),
+                textSection,
+                Separator.of(),
                 ActionRow.of(
                         Button.secondary(CROSSROADS_DISCORD_BTN_PREFIX + gameConfig.normalizedName(), "Appeal Discord"),
-                        Button.secondary(CROSSROADS_IN_GAME_BTN_PREFIX + gameConfig.normalizedName(), "Appeal In-Game")
-                )
-        );
+                        Button.secondary(
+                                CROSSROADS_IN_GAME_BTN_PREFIX + gameConfig.normalizedName(), "Appeal In-Game")));
     }
 }

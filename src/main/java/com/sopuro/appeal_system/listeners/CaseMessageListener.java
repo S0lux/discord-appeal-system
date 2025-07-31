@@ -103,10 +103,12 @@ public class CaseMessageListener {
                 .then(findCaseByChannelId(event.getMessage().getChannelId()))
                 .flatMap(caseId -> persistMessage(event, caseId))
                 .onErrorResume(error -> {
-                    log.warn(
-                            "Failed to handle message create for message {}: {}",
+                    if (!(error instanceof MessageNotFromAppealServerException))
+                        log.warn(
+                            "Failed to create log for message {}: {}",
                             event.getMessage().getId().asString(),
                             error.getMessage());
+
                     return Mono.empty();
                 });
     }

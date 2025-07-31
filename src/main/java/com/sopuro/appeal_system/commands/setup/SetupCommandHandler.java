@@ -47,6 +47,7 @@ public class SetupCommandHandler implements SlashCommand {
 
     @Override
     public Mono<Void> preCondition(ChatInputInteractionEvent event) {
+        log.info("Triggering precondition check");
         // Check if the command is executed in an APPEAL guild
         String guildId = event.getInteraction().getGuildId().get().asString();
         if (!appealSystemConfig.isAppealServer(guildId)) return Mono.error(new NotAppealGuildException(guildId));
@@ -67,13 +68,11 @@ public class SetupCommandHandler implements SlashCommand {
 
     @Override
     public Mono<Void> handle(ChatInputInteractionEvent event) {
-        return event.deferReply()
-                .withEphemeral(true)
-                .then(event.getInteraction().getGuild().flatMap(guild -> Mono.when(
-                                createAppealCategory(guild, CATEGORY_OPEN_APPEALS),
-                                createAppealCategory(guild, CATEGORY_CLOSED_APPEALS))
-                        .then(event.editReply("Setup completed successfully!"))
-                        .then()));
+        return event.getInteraction().getGuild().flatMap(guild -> Mono.when(
+                        createAppealCategory(guild, CATEGORY_OPEN_APPEALS),
+                        createAppealCategory(guild, CATEGORY_CLOSED_APPEALS))
+                .then(event.editReply("Setup completed successfully!"))
+                .then());
     }
 
     private Mono<Void> createAppealCategory(Guild guild, String categoryName) {

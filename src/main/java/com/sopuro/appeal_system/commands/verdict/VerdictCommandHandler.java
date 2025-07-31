@@ -81,9 +81,7 @@ public class VerdictCommandHandler implements SlashCommand {
                 .getGuildId()
                 .orElseThrow(() -> new IllegalArgumentException("Guild ID is required for this command"));
 
-        return event.deferReply()
-                .withEphemeral(true)
-                .then(getCaseEntityFromChannel(channelId))
+        return getCaseEntityFromChannel(channelId)
                 .flatMap(caseEntity ->
                         handleVerdict(caseEntity, verdict, reason, guildId.asString(), discordId.asString()))
                 .flatMap(updatedCase -> {
@@ -99,9 +97,10 @@ public class VerdictCommandHandler implements SlashCommand {
                                         .flatMap(channel -> channel.createMessage(
                                                 CaseLogMessage.create(updatedCase, profile, avatar)))
                                         .then(event.editReply("Verdict applied successfully!"))
-                                        .then();
+                                        .thenReturn(updatedCase);
                             });
-                });
+                })
+                .then();
     }
 
     private Mono<Tuple2<OpenCloudRobloxProfileDto, OpenCloudRobloxAvatarDto>> getRobloxProfileAndAvatar(
@@ -158,7 +157,10 @@ public class VerdictCommandHandler implements SlashCommand {
                 && caseEntity.getPunishmentType() == PunishmentType.BAN
                 && caseEntity.getAppealPlatform() == AppealPlatform.DISCORD) {
             return unbanFromRover(gameConfig.communityServerId(), robloxId, gameConfig.normalizedName())
-                    .then(unbanFromCommunity(gameConfig.communityServerId(), caseEntity.getAppealerDiscordId(), gameConfig.normalizedName()))
+                    .then(unbanFromCommunity(
+                            gameConfig.communityServerId(),
+                            caseEntity.getAppealerDiscordId(),
+                            gameConfig.normalizedName()))
                     .then(updateCaseWithVerdict(caseEntity, verdict, reason, verdictBy));
         }
 
@@ -232,6 +234,14 @@ public class VerdictCommandHandler implements SlashCommand {
 
         return Mono.fromCallable(() -> caseRepository.save(caseEntity)).subscribeOn(Schedulers.boundedElastic());
     }
+
+    //    private Mono<Void> moveCaseChannelToClosed(Snowflake channelSnowflake) {
+    //        return gatewayDiscordClient
+    //                .getChannelById(channelSnowflake)
+    //                .cast(TextChannel.class)
+    //                .flatMap(channel -> channel.edit(TextChannelEditSpec.create().))
+    //                .then();
+    //    }
 
     private Mono<Void> handleClientException(ClientException clientException, String discordId, String communityId) {
         if (clientException.getStatus() == HttpResponseStatus.NOT_FOUND) {

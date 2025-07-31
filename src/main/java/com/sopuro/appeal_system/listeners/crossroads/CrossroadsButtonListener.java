@@ -115,38 +115,39 @@ public class CrossroadsButtonListener {
 
     private Mono<Void> routeButtonAction(ButtonInteractionEvent event, GameConfigDto gameConfig) {
         String customId = event.getCustomId();
-        String normalizedGameName = gameConfig.normalizedName();
 
         if (customId.startsWith(PanelCommandHandler.CROSSROADS_DISCORD_BTN_PREFIX)) {
-            return handleDiscordAppealButton(event, normalizedGameName);
+            return handleDiscordAppealButton(event);
         } else if (customId.startsWith(PanelCommandHandler.CROSSROADS_IN_GAME_BTN_PREFIX)) {
-            return handleInGameAppealButton(event, normalizedGameName);
+            return handleInGameAppealButton(event);
         } else {
             log.warn("Unknown crossroads button custom ID: {} from user {}", customId, getUserInfo(event));
             return Mono.empty();
         }
     }
 
-    private Mono<Void> handleDiscordAppealButton(ButtonInteractionEvent event, String normalizedGameName) {
+    private Mono<Void> handleDiscordAppealButton(ButtonInteractionEvent event) {
         String userInfo = getUserInfo(event);
         String guildId = event.getInteraction().getGuildId().map(Snowflake::asString).orElse("Unknown");
+        String normalizedGameName = appealSystemConfig.getGameConfigByServerId(guildId).normalizedName();
 
         log.info("Processing Discord appeal request for user {} in game '{}' (guild: {})",
                 userInfo, normalizedGameName, guildId);
 
-        return event.reply(new MenuAppealDiscord(normalizedGameName).createSelectMenu())
+        return event.reply(MenuAppealDiscord.createSelectMenu())
                 .doOnSuccess(ignored -> log.debug("Successfully sent Discord appeal menu to user {}", userInfo))
                 .then();
     }
 
-    private Mono<Void> handleInGameAppealButton(ButtonInteractionEvent event, String normalizedGameName) {
+    private Mono<Void> handleInGameAppealButton(ButtonInteractionEvent event) {
         String userInfo = getUserInfo(event);
         String guildId = event.getInteraction().getGuildId().map(Snowflake::asString).orElse("Unknown");
+        String normalizedGameName = appealSystemConfig.getGameConfigByServerId(guildId).normalizedName();
 
         log.info("Processing in-game appeal request for user {} in game '{}' (guild: {})",
                 userInfo, normalizedGameName, guildId);
 
-        return event.presentModal(new ModalAppealGame(normalizedGameName).createModal())
+        return event.presentModal(ModalAppealGame.createModal())
                 .doOnSuccess(ignored -> log.debug("Successfully presented in-game appeal modal to user {}", userInfo));
     }
 

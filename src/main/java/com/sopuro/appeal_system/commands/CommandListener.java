@@ -9,6 +9,8 @@ import com.sopuro.appeal_system.shared.enums.AppealRole;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
+import discord4j.rest.http.client.ClientException;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
@@ -39,7 +41,7 @@ public class CommandListener {
 
         if (command == null) {
             log.warn("Unknown command received: {}", commandName);
-            return event.reply("Unknown command.").withEphemeral(true);
+            return event.editReply("Unknown command.").then();
         }
 
         log.info(
@@ -49,7 +51,8 @@ public class CommandListener {
                 event.getInteraction().getUser().getId().asString(),
                 event.getInteraction().getGuildId().map(Snowflake::asString).orElse("DM or unknown context"));
 
-        return validateGuildContext(event)
+        return event.deferReply()
+                .then(Mono.defer(() -> validateGuildContext(event)))
                 .then(Mono.defer(() -> validateUserRoles(event, command.allowedRoles())))
                 .then(Mono.defer(() -> command.preCondition(event)))
                 .then(Mono.defer(() -> executeCommand(event, command)))
@@ -124,10 +127,10 @@ public class CommandListener {
     }
 
     private Mono<Void> handleCommandError(ChatInputInteractionEvent event, Throwable error) {
-        if (error instanceof AppealException)
-            return event.reply(error.getMessage()).withEphemeral(true);
+        String message = (error instanceof AppealException)
+                ? error.getMessage()
+                : "An unexpected error occurred while processing your command.";
 
-        return event.reply("An error occurred while processing your command. Please try again later.")
-                .withEphemeral(true);
+        return event.editReply(message).then();
     }
 }

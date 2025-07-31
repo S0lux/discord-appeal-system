@@ -52,7 +52,7 @@ public class CrossroadsMenuListener {
     }
 
     private boolean isDiscordAppealMenu(SelectMenuInteractionEvent event) {
-        return event.getCustomId().startsWith(MenuAppealDiscord.DISCORD_SELECT_MENU_PREFIX);
+        return event.getCustomId().startsWith(MenuAppealDiscord.DISCORD_SELECT_MENU);
     }
 
     private Mono<Void> handleMenuInteraction(SelectMenuInteractionEvent event) {
@@ -102,7 +102,7 @@ public class CrossroadsMenuListener {
     private Mono<Void> routeMenuSelection(SelectMenuInteractionEvent event, String selectedOption, GameConfigDto gameConfig) {
         return switch (selectedOption) {
             case MenuAppealDiscord.BAN_VALUE -> handleBanAppeal(event, gameConfig);
-            case MenuAppealDiscord.WARNING_VALUE -> handleWarningAppeal(event, gameConfig);
+            case MenuAppealDiscord.WARNING_VALUE -> handleWarningAppeal(event);
             default -> {
                 log.warn("Invalid menu selection '{}' by user {} in guild {}",
                         selectedOption, getUserInfo(event),
@@ -120,17 +120,17 @@ public class CrossroadsMenuListener {
                 userInfo, communityServerId);
 
         return validateUserBanStatus(event, communityServerId)
-                .then(presentBanAppealModal(event, gameConfig))
+                .then(presentBanAppealModal(event))
                 .doOnSuccess(ignored ->
                         log.debug("Successfully presented ban appeal modal to user {}", userInfo));
     }
 
-    private Mono<Void> handleWarningAppeal(SelectMenuInteractionEvent event, GameConfigDto gameConfig) {
+    private Mono<Void> handleWarningAppeal(SelectMenuInteractionEvent event) {
         String userInfo = getUserInfo(event);
 
         log.debug("Processing warning appeal for user {}", userInfo);
 
-        return presentWarningAppealModal(event, gameConfig)
+        return presentWarningAppealModal(event)
                 .doOnSuccess(ignored ->
                         log.debug("Successfully presented warning appeal modal to user {}", userInfo));
     }
@@ -138,31 +138,30 @@ public class CrossroadsMenuListener {
     private Mono<Void> validateUserBanStatus(SelectMenuInteractionEvent event, String communityServerId) {
         Snowflake userId = event.getUser().getId();
         Snowflake communityGuildId = Snowflake.of(communityServerId);
+        GameConfigDto gameConfig = appealSystemConfig.getGameConfigByServerId(communityServerId);
 
         return gatewayDiscordClient
                 .getGuildById(communityGuildId)
                 .flatMap(guild -> guild.getBan(userId))
                 .then()
-                .onErrorResume(ClientException.class, this::handleBanCheckError);
+                .onErrorResume(ClientException.class, e -> this.handleBanCheckError(e, gameConfig.name()));
     }
 
-    private Mono<Void> handleBanCheckError(ClientException ex) {
+    private Mono<Void> handleBanCheckError(ClientException ex, String gameName) {
         if (ex.getStatus().code() == 404) {
             // User is not banned (404 = ban not found)
-            return Mono.error(new UserIsNotDiscordBannedException());
+            return Mono.error(new UserIsNotDiscordBannedException(gameName));
         }
         // Re-throw other client exceptions
         return Mono.error(ex);
     }
 
-    private Mono<Void> presentBanAppealModal(SelectMenuInteractionEvent event, GameConfigDto gameConfig) {
-        ModalAppealDiscord modal = new ModalAppealDiscord(gameConfig.normalizedName());
-        return event.presentModal(modal.createModal(PunishmentType.BAN));
+    private Mono<Void> presentBanAppealModal(SelectMenuInteractionEvent event) {
+        return event.presentModal(ModalAppealDiscord.createModal(PunishmentType.BAN));
     }
 
-    private Mono<Void> presentWarningAppealModal(SelectMenuInteractionEvent event, GameConfigDto gameConfig) {
-        ModalAppealDiscord modal = new ModalAppealDiscord(gameConfig.normalizedName());
-        return event.presentModal(modal.createModal(PunishmentType.WARN));
+    private Mono<Void> presentWarningAppealModal(SelectMenuInteractionEvent event) {
+        return event.presentModal(ModalAppealDiscord.createModal(PunishmentType.WARN));
     }
 
     private Mono<Void> handleInteractionError(SelectMenuInteractionEvent event, Throwable error) {

@@ -28,6 +28,7 @@ public class CaseLogMessage {
                 .withComponents(Container.of(
                                 TextDisplay.of(header),
                                 TextDisplay.of("**Appeal ID: **" + "`" + caseEntity.getId() + "`"),
+                                TextDisplay.of("**Appealer Discord: **" + " <@" + caseEntity.getAppealerDiscordId() + ">"),
                                 TextDisplay.of("**Game: **" + caseEntity.getGame()),
                                 TextDisplay.of("**Type: **" + caseEntity.getPunishmentType()),
                                 TextDisplay.of("**Closed by: **" + " <@" + caseEntity.getVerdictBy() + ">"),
@@ -40,20 +41,7 @@ public class CaseLogMessage {
                                                 robloxAvatarDto.response().imageUri())),
                                         TextDisplay.of("**ID:** " + "`" + robloxProfileDto.id() + "`"),
                                         TextDisplay.of("**Username:** " + robloxProfileDto.name()),
-                                        TextDisplay.of("**Display Name:** " + robloxProfileDto.displayName())),
-                                Separator.of(),
-                                TextDisplay.of("# :robot:  ADDITIONAL INFORMATION"),
-                                TextDisplay.of(
-                                        "**Premium:** " + (robloxProfileDto.premium() ? ":white_check_mark:" : ":x:")),
-                                TextDisplay.of("**ID Verified:** "
-                                        + (robloxProfileDto.idVerified() ? ":white_check_mark:" : ":x:")),
-                                TextDisplay.of("**Discord: ** " + "<@" + caseEntity.getAppealerDiscordId() + ">"),
-                                TextDisplay.of("**Account Creation Time:** "
-                                        + TimestampFormat.LONG_DATE.format(robloxProfileDto.createTime())),
-                                TextDisplay.of("**Reason:** \n >" + caseEntity.getVerdictReason()),
-                                ActionRow.of(Button.link(
-                                        "https://roblox.com/users/" + robloxProfileDto.id() + "/profile",
-                                        "View Profile")))
+                                        TextDisplay.of("**Display Name:** " + robloxProfileDto.displayName())))
                         .withColor(containerColor));
     }
 }

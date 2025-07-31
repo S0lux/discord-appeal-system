@@ -8,7 +8,7 @@ import discord4j.core.spec.InteractionPresentModalSpec;
 
 import java.util.List;
 
-public record ModalAppealDiscord(String normalizedGameName) {
+public class ModalAppealDiscord {
     public static final String DISCORD_MODAL_PREFIX = "crossroads:discord_modal_";
     public static final String DISCORD_MODAL_PUNISHMENT_REASON = "crossroads:discord_modal_punishment_reason";
     public static final String DISCORD_MODAL_APPEAL_REASON = "crossroads:discord_modal_appeal_reason";
@@ -25,38 +25,6 @@ public record ModalAppealDiscord(String normalizedGameName) {
 
         String[] parts = modalId.substring(DISCORD_MODAL_PREFIX.length()).split("_");
         return PunishmentType.valueOf(parts[0]);
-    }
-
-    /**
-     * Prefer to use AppealSystemConfig.getGameConfigByServerId(String serverId) for game name normalization
-     * to ensure consistency across the application.
-     * <p>
-     * Only use this method if you can't access the AppealSystemConfig directly.
-     *
-     * @param modalId The modal ID to extract the game name from.
-     * @return The normalized game name.
-     * @throws IllegalArgumentException if the modal ID is invalid or does not match the expected format.
-     */
-    @Deprecated(since = "1.0", forRemoval = false)
-    public static String getNormalizedGameNameFromModalId(String modalId) {
-        if (modalId == null || !modalId.startsWith(DISCORD_MODAL_PREFIX))
-            throw new IllegalArgumentException("Invalid modal ID: " + modalId);
-
-        String[] parts = modalId.substring(DISCORD_MODAL_PREFIX.length()).split("_");
-
-        if (parts.length < 2) {
-            throw new IllegalArgumentException("Invalid modal ID format. Expected: prefix_PUNISHMENT_TYPE_game_name");
-        }
-
-        StringBuilder gameName = new StringBuilder();
-        for (int i = 1; i < parts.length; i++) {
-            if (i > 1) {
-                gameName.append("_");
-            }
-            gameName.append(parts[i]);
-        }
-
-        return gameName.toString();
     }
 
     public static String getPunishmentReason(ModalSubmitInteractionEvent event) {
@@ -77,9 +45,9 @@ public record ModalAppealDiscord(String normalizedGameName) {
                 .orElse("No reason provided");
     }
 
-    public InteractionPresentModalSpec createModal(PunishmentType punishmentType) {
+    public static InteractionPresentModalSpec createModal(PunishmentType punishmentType) {
         return InteractionPresentModalSpec.builder()
-                .customId(DISCORD_MODAL_PREFIX + punishmentType.name() + "_" + normalizedGameName)
+                .customId(DISCORD_MODAL_PREFIX + punishmentType.name())
                 .title(TITLE)
                 .addAllComponents(List.of(
                         ActionRow.of(TextInput.small(DISCORD_MODAL_PUNISHMENT_REASON, PUNISHMENT_REASON_LABEL)

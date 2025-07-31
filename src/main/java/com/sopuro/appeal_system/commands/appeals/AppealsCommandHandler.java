@@ -61,8 +61,7 @@ public class AppealsCommandHandler implements SlashCommand {
                 .map(ApplicationCommandInteractionOptionValue::asBoolean)
                 .orElseThrow(() -> new IllegalStateException("Option 'accepting' is required"));
 
-        return event.deferReply().withEphemeral(true)
-                .then(Mono.defer(() -> {
+        return Mono.defer(() -> {
                     GuildConfigEntity guildConfig = GuildConfigEntity.builder()
                             .guildId(guildId)
                             .configKey(GuildConfig.APPEAL_ENABLED)
@@ -70,7 +69,7 @@ public class AppealsCommandHandler implements SlashCommand {
                             .build();
 
                     return Mono.just(guildConfigRepository.save(guildConfig));
-                }))
+                })
                 .flatMap(config -> event
                         .editReply("Appeal system has been " + (appealEnabled ? "enabled" : "disabled") + ".")
                         .then());

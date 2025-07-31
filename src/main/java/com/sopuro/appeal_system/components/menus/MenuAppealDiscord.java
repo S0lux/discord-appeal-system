@@ -8,16 +8,16 @@ import discord4j.core.spec.InteractionApplicationCommandCallbackSpec;
 
 import java.util.List;
 
-public record MenuAppealDiscord(String normalizedGameName) {
+public class MenuAppealDiscord {
     public static final String BAN_VALUE = "ban";
     public static final String WARNING_VALUE = "warning";
-    public static final String DISCORD_SELECT_MENU_PREFIX = "crossroads:discord_select_menu_";
+    public static final String DISCORD_SELECT_MENU = "crossroads:discord_select_menu";
     private static final String TITLE = "## Discord Appeal";
     private static final String DESCRIPTION = "Please select the type of appeal you want to submit:";
     private static final String BAN_LABEL = "Permanent/Temporary Ban Appeal";
     private static final String WARNING_LABEL = "Warning Appeal";
 
-    public InteractionApplicationCommandCallbackSpec createSelectMenu() {
+    public static InteractionApplicationCommandCallbackSpec createSelectMenu() {
         return InteractionApplicationCommandCallbackSpec
                 .create()
                 .withEphemeral(true)
@@ -27,7 +27,7 @@ public record MenuAppealDiscord(String normalizedGameName) {
                                 TextDisplay.of(DESCRIPTION),
                                 ActionRow.of(
                                         SelectMenu.of(
-                                                DISCORD_SELECT_MENU_PREFIX + normalizedGameName,
+                                                DISCORD_SELECT_MENU,
                                                 List.of(
                                                         SelectMenu.Option.of(BAN_LABEL, BAN_VALUE),
                                                         SelectMenu.Option.of(WARNING_LABEL, WARNING_VALUE)
