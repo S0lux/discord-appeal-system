@@ -18,6 +18,7 @@ public class ConfigurationIntegrityChecker {
     public void checkConfigurationIntegrity() {
         log.info("Starting configuration integrity check...");
         roverTokenCheck();
+        aesKeyCheck();
         log.info("Configuration integrity check completed successfully");
     }
 
@@ -41,6 +42,14 @@ public class ConfigurationIntegrityChecker {
         if (hasErrors) {
             throw new RuntimeException(
                     "Configuration integrity check failed: Missing or empty rover tokens detected. Check preceding logs for details.");
+        }
+    }
+
+    private void aesKeyCheck() {
+        String secretKey = System.getenv("AES_SECRET_KEY");
+        String salt = System.getenv("AES_SALT");
+        if (secretKey == null || secretKey.isBlank() || salt == null || salt.isBlank()) {
+            throw new RuntimeException("Missing AES configuration details (secretKey and salt)");
         }
     }
 }
