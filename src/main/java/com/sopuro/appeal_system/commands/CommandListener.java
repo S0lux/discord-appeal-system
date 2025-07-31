@@ -1,5 +1,6 @@
 package com.sopuro.appeal_system.commands;
 
+import com.sopuro.appeal_system.components.messages.GenericErrorMessageEmbed;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.exceptions.AppealException;
 import com.sopuro.appeal_system.exceptions.appeal.ApplicationMisconfiguredException;
@@ -131,6 +132,6 @@ public class CommandListener {
                 ? error.getMessage()
                 : "An unexpected error occurred while processing your command.";
 
-        return event.editReply(message).then();
+        return event.editReply(GenericErrorMessageEmbed.create(message)).then();
     }
 }

@@ -47,7 +47,6 @@ public class SetupCommandHandler implements SlashCommand {
 
     @Override
     public Mono<Void> preCondition(ChatInputInteractionEvent event) {
-        log.info("Triggering precondition check");
         // Check if the command is executed in an APPEAL guild
         String guildId = event.getInteraction().getGuildId().get().asString();
         if (!appealSystemConfig.isAppealServer(guildId)) return Mono.error(new NotAppealGuildException(guildId));
