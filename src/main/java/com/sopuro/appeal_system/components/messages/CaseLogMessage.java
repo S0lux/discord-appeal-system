@@ -9,7 +9,6 @@ import discord4j.core.object.component.*;
 import discord4j.core.object.entity.Message;
 import discord4j.core.spec.MessageCreateSpec;
 import discord4j.rest.util.Color;
-import org.w3c.dom.Text;
 
 public class CaseLogMessage {
 

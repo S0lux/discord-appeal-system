@@ -12,7 +12,6 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.security.spec.KeySpec;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Base64;
 
 @Slf4j
