@@ -80,7 +80,7 @@ public class EncryptionHelper {
             String[] strComponents = decryptedStr.split("/");
             return new CaseAccessDetails(strComponents[0], strComponents[1], Instant.parse(strComponents[2]));
         } catch (Exception ex) {
-            log.info("Error decrypting", ex);
+            // Invalid access code, ignore
             return null;
         }
     }
