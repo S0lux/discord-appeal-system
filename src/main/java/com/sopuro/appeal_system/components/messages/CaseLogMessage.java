@@ -34,6 +34,7 @@ public class CaseLogMessage {
                                 TextDisplay.of("**Closed by: **" + " <@" + caseEntity.getVerdictBy() + ">"),
                                 TextDisplay.of(
                                         "**Closed on: **" + TimestampFormat.LONG_DATE.format(caseEntity.getClosedAt())),
+                                TextDisplay.of("**Reason:** \n> " + caseEntity.getVerdictReason()),
                                 Separator.of(),
                                 TextDisplay.of("# :video_game:  APPEALER ROBLOX PROFILE"),
                                 Section.of(

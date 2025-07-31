@@ -11,19 +11,25 @@ import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.entities.CaseEntity;
 import com.sopuro.appeal_system.exceptions.AppealException;
 import com.sopuro.appeal_system.exceptions.appeal.AppealAlreadyCompletedException;
+import com.sopuro.appeal_system.exceptions.appeal.IncorrectServerSetupException;
 import com.sopuro.appeal_system.exceptions.appeal.NotAppealChannelException;
 import com.sopuro.appeal_system.exceptions.appeal.NotInCommunityServerException;
 import com.sopuro.appeal_system.exceptions.rover.RoverUnbanFailedException;
 import com.sopuro.appeal_system.repositories.CaseRepository;
+import com.sopuro.appeal_system.repositories.GuildConfigRepository;
 import com.sopuro.appeal_system.shared.enums.*;
+import com.sopuro.appeal_system.shared.permissions.RoleOverwrites;
 import com.sopuro.appeal_system.shared.utils.TokenHelper;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
+import discord4j.core.object.PermissionOverwrite;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.Guild;
 import discord4j.core.object.entity.channel.TextChannel;
+import discord4j.core.spec.TextChannelEditSpec;
 import discord4j.rest.http.client.ClientException;
+import discord4j.rest.util.PermissionSet;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +51,7 @@ public class VerdictCommandHandler implements SlashCommand {
     private final AppealSystemConfig appealSystemConfig;
     private final GatewayDiscordClient gatewayDiscordClient;
     private final CaseRepository caseRepository;
+    private final GuildConfigRepository guildConfigRepository;
     private final OpenCloudClient openCloudClient;
     private final RoverClient roverClient;
 
@@ -100,6 +107,8 @@ public class VerdictCommandHandler implements SlashCommand {
                                         .thenReturn(updatedCase);
                             });
                 })
+                .flatMap(caseEntity -> moveCaseChannelToClosed(
+                        Snowflake.of(caseEntity.getChannelId()), Snowflake.of(caseEntity.getAppealerDiscordId())))
                 .then();
     }
 
@@ -235,13 +244,43 @@ public class VerdictCommandHandler implements SlashCommand {
         return Mono.fromCallable(() -> caseRepository.save(caseEntity)).subscribeOn(Schedulers.boundedElastic());
     }
 
-    //    private Mono<Void> moveCaseChannelToClosed(Snowflake channelSnowflake) {
-    //        return gatewayDiscordClient
-    //                .getChannelById(channelSnowflake)
-    //                .cast(TextChannel.class)
-    //                .flatMap(channel -> channel.edit(TextChannelEditSpec.create().))
-    //                .then();
-    //    }
+    private Mono<Void> moveCaseChannelToClosed(Snowflake channelSnowflake, Snowflake appealerId) {
+        return gatewayDiscordClient
+                .getChannelById(channelSnowflake)
+                .cast(TextChannel.class)
+                .flatMap(channel -> {
+                    GameConfigDto gameConfig = appealSystemConfig.getGameConfigByServerId(
+                            channel.getGuildId().asString());
+
+                    return Mono.fromCallable(() -> guildConfigRepository.findByGuildIdAndConfigKey(
+                                    gameConfig.appealServerId(), GuildConfig.CLOSED_APPEALS_CATEGORY_ID))
+                            .subscribeOn(Schedulers.boundedElastic())
+                            .flatMap(config -> {
+                                if (config.isEmpty()) return Mono.error(new IncorrectServerSetupException());
+                                else {
+                                    String closedCategoryId = config.get().getConfigValue();
+                                    return channel.edit(TextChannelEditSpec.create()
+                                            // Move to closed category
+                                            .withParentIdOrNull(Snowflake.of(closedCategoryId))
+                                            // Update the permissions
+                                            .withPermissionOverwrites(List.of(
+                                                    PermissionOverwrite.forMember(
+                                                            appealerId,
+                                                            RoleOverwrites.Member.CLOSED_PERMISSIONS,
+                                                            PermissionSet.all()),
+                                                    PermissionOverwrite.forRole(
+                                                            Snowflake.of(gameConfig.appealJudgeRoleId()),
+                                                            RoleOverwrites.Judge.CLOSED_PERMISSIONS,
+                                                            PermissionSet.all()),
+                                                    PermissionOverwrite.forRole(
+                                                            Snowflake.of(gameConfig.appealOverseerRoleId()),
+                                                            RoleOverwrites.Overseer.CLOSED_PERMISSIONS,
+                                                            PermissionSet.all()))));
+                                }
+                            });
+                })
+                .then();
+    }
 
     private Mono<Void> handleClientException(ClientException clientException, String discordId, String communityId) {
         if (clientException.getStatus() == HttpResponseStatus.NOT_FOUND) {
