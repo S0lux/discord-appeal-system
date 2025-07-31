@@ -102,21 +102,29 @@ public class VerdictCommandHandler implements SlashCommand {
                             .flatMap(tuple -> {
                                 OpenCloudRobloxProfileDto profile = tuple.getT1();
                                 OpenCloudRobloxAvatarDto avatar = tuple.getT2();
+                                GameConfigDto gameConfig =
+                                        appealSystemConfig.getGameConfigByServerId(guildId.asString());
 
-                                return gatewayDiscordClient
-                                        .getChannelById(channelId)
-                                        .cast(TextChannel.class)
-                                        .flatMap(channel -> channel.createMessage(
-                                                CaseLogMessage.create(updatedCase, profile, avatar)))
+                                return Mono.when(
+                                                gatewayDiscordClient
+                                                        .getChannelById(channelId)
+                                                        .cast(TextChannel.class)
+                                                        .flatMap(channel -> channel.createMessage(
+                                                                CaseLogMessage.create(updatedCase, profile, avatar))),
+                                                gatewayDiscordClient
+                                                        .getChannelById(Snowflake.of(gameConfig.logChannelId()))
+                                                        .cast(TextChannel.class)
+                                                        .flatMap(channel -> channel.createMessage(
+                                                                CaseLogMessage.create(updatedCase, profile, avatar))))
                                         .then(event.editReply("Verdict applied successfully!"))
                                         .thenReturn(updatedCase);
                             });
                 })
                 .flatMap(caseEntity -> Mono.when(
                         moveCaseChannelToClosed(
-                                Snowflake.of(caseEntity.getChannelId()), Snowflake.of(caseEntity.getAppealerDiscordId())),
-                        sendCaseLogDM(Snowflake.of(caseEntity.getAppealerDiscordId()), caseEntity)
-                ))
+                                Snowflake.of(caseEntity.getChannelId()),
+                                Snowflake.of(caseEntity.getAppealerDiscordId())),
+                        sendCaseLogDM(Snowflake.of(caseEntity.getAppealerDiscordId()), caseEntity)))
                 .then();
     }
 
@@ -294,9 +302,8 @@ public class VerdictCommandHandler implements SlashCommand {
         return gatewayDiscordClient
                 .getUserById(recipientId)
                 .flatMap(user -> user.getPrivateChannel()
-                        .flatMap(privateChannel -> privateChannel.createMessage(
-                                CaseLogDirectMessage.create(caseEntity, domainName)
-                        )))
+                        .flatMap(privateChannel ->
+                                privateChannel.createMessage(CaseLogDirectMessage.create(caseEntity, domainName))))
                 .then();
     }
 

@@ -9,7 +9,8 @@ public record GameConfigDto(
         String appealServerId,
         String communityServerId,
         String appealJudgeRoleId,
-        String appealOverseerRoleId) {
+        String appealOverseerRoleId,
+        String logChannelId) {
     public String normalizedName() {
         return name != null ? name.toLowerCase().replace(" ", "_") : null;
     }
