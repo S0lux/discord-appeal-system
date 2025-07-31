@@ -27,7 +27,8 @@ public class CaseLogMessage {
                 .withComponents(Container.of(
                                 TextDisplay.of(header),
                                 TextDisplay.of("**Appeal ID: **" + "`" + caseEntity.getId() + "`"),
-                                TextDisplay.of("**Appealer Discord: **" + " <@" + caseEntity.getAppealerDiscordId() + ">"),
+                                TextDisplay.of(
+                                        "**Appealer Discord: **" + " <@" + caseEntity.getAppealerDiscordId() + ">"),
                                 TextDisplay.of("**Game: **" + caseEntity.getGame()),
                                 TextDisplay.of("**Type: **" + caseEntity.getPunishmentType()),
                                 TextDisplay.of("**Closed by: **" + " <@" + caseEntity.getVerdictBy() + ">"),
