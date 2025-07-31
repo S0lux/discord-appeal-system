@@ -9,6 +9,7 @@ import discord4j.core.spec.MessageCreateSpec;
 import discord4j.rest.util.Color;
 import lombok.extern.slf4j.Slf4j;
 
+import java.time.Instant;
 import java.util.Objects;
 
 @Slf4j
@@ -22,14 +23,17 @@ public class CaseLogDirectMessage {
                         .withColor(caseEntity.getAppealVerdict() == AppealVerdict.ACCEPTED ? Color.GREEN : Color.RED)
                         .withTitle(String.format("Case %s", caseEntity.getId()))
                         .withDescription(
-                                ":warning: **Do not** share your case details with anyone that is not an appeal staff.\nIf you have to share your case details with an appeal staff, **only share the ID of your case.**\nIntentional leaking of your appeal will result in negative consequences.")
+                                ":warning: **IMPORTANT** :warning:\n* **Do not** share your case details with anyone that is not an appeal staff.\n* If you have to share your case details with an appeal staff, **only share the ID of your case.**\n* Intentional leaking of your appeal will result in negative consequences.")
                         .withFields(
                                 EmbedCreateFields.Field.of(
                                         "Status", caseEntity.getAppealVerdict().toString(), true),
                                 EmbedCreateFields.Field.of(
                                         "Access Link",
-                                        String.format("[Click here](https://%s/appeals/%s)", frontendDomain, accessCode),
+                                        String.format(
+                                                "[Click here](https://%s/appeals/%s)", frontendDomain, accessCode),
                                         true),
-                                EmbedCreateFields.Field.of("Reason", "> " + caseEntity.getVerdictReason(), false)));
+                                EmbedCreateFields.Field.of("Reason", "> " + caseEntity.getVerdictReason(), false))
+                        .withTimestamp(Instant.now())
+                        .withFooter(EmbedCreateFields.Footer.of("ID: " + caseEntity.getId(), "")));
     }
 }
