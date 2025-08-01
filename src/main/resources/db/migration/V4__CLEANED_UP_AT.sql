@@ -1,0 +1,2 @@
+ALTER TABLE cases
+    ADD cleaned_up_at TIMESTAMP WITHOUT TIME ZONE;

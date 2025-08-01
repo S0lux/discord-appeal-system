@@ -6,6 +6,7 @@ import com.sopuro.appeal_system.shared.enums.AppealVerdict;
 import com.sopuro.appeal_system.shared.enums.PunishmentType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,4 +33,9 @@ public interface CaseRepository extends JpaRepository<CaseEntity, UUID> {
             + "OR c.appealerRobloxId = :appealerRobloxId "
             + "ORDER BY c.appealedAt DESC")
     List<CaseEntity> getCasesOfAppealer(String appealerDiscordId, String appealerRobloxId);
+
+    @Query("SELECT c FROM CaseEntity c WHERE c.closedAt < :#{T(java.time.Instant).now().minus(#days, T(java.time.temporal.ChronoUnit).DAYS)} "
+            + "AND c.cleanedUpAt IS NULL")
+    List<CaseEntity> getNotCleanedUpOldCases(@Param("days") long days);
+
 }

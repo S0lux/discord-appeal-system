@@ -69,7 +69,11 @@ public class CaseEntity {
     @Column(name = "closed_at")
     private Instant closedAt;
 
+    @Column(name = "cleaned_up_at")
+    private Instant cleanedUpAt;
+
     @OneToMany(mappedBy = "appealCase", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @ToString.Exclude
     private List<MessageLogEntity> messageLogs;
 
     @Override
