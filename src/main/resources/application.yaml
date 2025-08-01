@@ -17,6 +17,7 @@ appeal-system:
 
   games:
     - name:
+      universe-id:
       crossroad-description:
         -
         -

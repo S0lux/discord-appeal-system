@@ -1,8 +1,8 @@
 package com.sopuro.appeal_system.commands.verdict;
 
 import com.sopuro.appeal_system.clients.opencloud.OpenCloudClient;
-import com.sopuro.appeal_system.clients.opencloud.dtos.OpenCloudRobloxAvatarDto;
-import com.sopuro.appeal_system.clients.opencloud.dtos.OpenCloudRobloxProfileDto;
+import com.sopuro.appeal_system.clients.opencloud.dtos.RobloxAvatarDto;
+import com.sopuro.appeal_system.clients.opencloud.dtos.RobloxProfileDto;
 import com.sopuro.appeal_system.clients.rover.RoverClient;
 import com.sopuro.appeal_system.commands.SlashCommand;
 import com.sopuro.appeal_system.components.messages.CaseLogDirectMessage;
@@ -100,8 +100,8 @@ public class VerdictCommandHandler implements SlashCommand {
                     log.info("Verdict '{}' applied to case {} with reason: {}", verdict, updatedCase.getId(), reason);
                     return getRobloxProfileAndAvatar(updatedCase.getAppealerRobloxId())
                             .flatMap(tuple -> {
-                                OpenCloudRobloxProfileDto profile = tuple.getT1();
-                                OpenCloudRobloxAvatarDto avatar = tuple.getT2();
+                                RobloxProfileDto profile = tuple.getT1();
+                                RobloxAvatarDto avatar = tuple.getT2();
                                 GameConfigDto gameConfig =
                                         appealSystemConfig.getGameConfigByServerId(guildId.asString());
 
@@ -128,13 +128,13 @@ public class VerdictCommandHandler implements SlashCommand {
                 .then();
     }
 
-    private Mono<Tuple2<OpenCloudRobloxProfileDto, OpenCloudRobloxAvatarDto>> getRobloxProfileAndAvatar(
+    private Mono<Tuple2<RobloxProfileDto, RobloxAvatarDto>> getRobloxProfileAndAvatar(
             String robloxId) {
-        Mono<OpenCloudRobloxProfileDto> profileMono = Mono.fromCallable(
+        Mono<RobloxProfileDto> profileMono = Mono.fromCallable(
                         () -> openCloudClient.getRobloxProfile(robloxId))
                 .subscribeOn(Schedulers.boundedElastic());
 
-        Mono<OpenCloudRobloxAvatarDto> avatarMono = Mono.fromCallable(() -> openCloudClient.getRobloxAvatar(robloxId))
+        Mono<RobloxAvatarDto> avatarMono = Mono.fromCallable(() -> openCloudClient.getRobloxAvatar(robloxId))
                 .subscribeOn(Schedulers.boundedElastic());
 
         return Mono.zip(profileMono, avatarMono).onErrorResume(throwable -> {

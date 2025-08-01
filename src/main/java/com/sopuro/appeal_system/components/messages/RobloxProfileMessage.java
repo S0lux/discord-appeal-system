@@ -1,7 +1,7 @@
 package com.sopuro.appeal_system.components.messages;
 
-import com.sopuro.appeal_system.clients.opencloud.dtos.OpenCloudRobloxAvatarDto;
-import com.sopuro.appeal_system.clients.opencloud.dtos.OpenCloudRobloxProfileDto;
+import com.sopuro.appeal_system.clients.opencloud.dtos.RobloxAvatarDto;
+import com.sopuro.appeal_system.clients.opencloud.dtos.RobloxProfileDto;
 import discord4j.common.util.TimestampFormat;
 import discord4j.core.object.component.*;
 import discord4j.core.object.entity.Message;
@@ -13,7 +13,7 @@ public class RobloxProfileMessage {
     private static String robloxEmoji;
 
     public static MessageCreateSpec create(
-            OpenCloudRobloxProfileDto robloxProfileDto, OpenCloudRobloxAvatarDto robloxAvatarDto) {
+            RobloxProfileDto robloxProfileDto, RobloxAvatarDto robloxAvatarDto) {
         return MessageCreateSpec.create()
                 .withFlags(Message.Flag.IS_COMPONENTS_V2)
                 .withComponents(Container.of(

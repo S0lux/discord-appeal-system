@@ -20,6 +20,11 @@ public class AppealService {
         EncryptionHelper.CaseAccessDetails details = EncryptionHelper.decryptCaseAccessCode(accessCode);
         if (details == null) return Optional.empty();
 
-        return caseRepository.findById(UUID.fromString(details.caseId()));
+        try {
+            UUID caseId = UUID.fromString(details.caseId());
+            return caseRepository.findById(caseId);
+        } catch (Exception ex) {
+            return Optional.empty();
+        }
     }
 }

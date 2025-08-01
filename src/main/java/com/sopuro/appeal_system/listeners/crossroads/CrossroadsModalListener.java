@@ -1,8 +1,8 @@
 package com.sopuro.appeal_system.listeners.crossroads;
 
 import com.sopuro.appeal_system.clients.opencloud.OpenCloudClient;
-import com.sopuro.appeal_system.clients.opencloud.dtos.OpenCloudRobloxAvatarDto;
-import com.sopuro.appeal_system.clients.opencloud.dtos.OpenCloudRobloxProfileDto;
+import com.sopuro.appeal_system.clients.opencloud.dtos.RobloxAvatarDto;
+import com.sopuro.appeal_system.clients.opencloud.dtos.RobloxProfileDto;
 import com.sopuro.appeal_system.clients.rover.RoverClient;
 import com.sopuro.appeal_system.components.messages.CaseHistoryMessage;
 import com.sopuro.appeal_system.components.messages.CaseInfoMessage;
@@ -163,7 +163,7 @@ public class CrossroadsModalListener {
                 });
     }
 
-    private Mono<OpenCloudRobloxProfileDto> retrieveUserRobloxAccount(AppealSubmissionContext context) {
+    private Mono<RobloxProfileDto> retrieveUserRobloxAccount(AppealSubmissionContext context) {
         final String roverToken =
                 TokenHelper.retrieveRoverTokenForGame(context.normalizedGameName(), ServerType.APPEAL);
 
@@ -174,28 +174,28 @@ public class CrossroadsModalListener {
                 .onErrorMap(HttpClientErrorException.NotFound.class, ex -> new RobloxAccountNotVerifiedException());
     }
 
-    private Mono<OpenCloudRobloxProfileDto> fetchRobloxProfile(String robloxId) {
+    private Mono<RobloxProfileDto> fetchRobloxProfile(String robloxId) {
         return Mono.fromCallable(() -> openCloudClient.getRobloxProfile(robloxId))
                 .subscribeOn(Schedulers.boundedElastic());
     }
 
-    private Mono<Tuple3<Snowflake, OpenCloudRobloxProfileDto, UUID>> createAppealChannelAndCase(
+    private Mono<Tuple3<Snowflake, RobloxProfileDto, CaseEntity>> createAppealChannelAndCase(
             ModalSubmitInteractionEvent event,
             AppealSubmissionContext context,
-            OpenCloudRobloxProfileDto robloxProfile) {
+            RobloxProfileDto robloxProfile) {
 
         return createAppealChannel(context, robloxProfile.name())
                 .flatMap(channelId -> persistAppealCase(event, context, robloxProfile.id(), channelId)
                         .map(caseId -> Tuples.of(channelId, robloxProfile, caseId)));
     }
 
-    private Mono<Tuple2<Snowflake, OpenCloudRobloxProfileDto>> populateChannelWithDetails(
+    private Mono<Tuple2<Snowflake, RobloxProfileDto>> populateChannelWithDetails(
             ModalSubmitInteractionEvent event,
             Snowflake channelId,
-            OpenCloudRobloxProfileDto robloxProfile,
-            UUID caseId) {
+            RobloxProfileDto robloxProfile,
+            CaseEntity caseEntity) {
 
-        return sendCaseDetailsMessage(channelId, event, caseId)
+        return sendCaseDetailsMessage(channelId, event, caseEntity)
                 .then(fetchAndSendRobloxProfileMessage(channelId, robloxProfile))
                 .then(sendCaseHistoryMessage(
                         channelId,
@@ -278,23 +278,23 @@ public class CrossroadsModalListener {
                         PermissionSet.none()));
     }
 
-    private Mono<Void> sendCaseDetailsMessage(Snowflake channelId, ModalSubmitInteractionEvent event, UUID caseId) {
+    private Mono<Void> sendCaseDetailsMessage(Snowflake channelId, ModalSubmitInteractionEvent event, CaseEntity caseEntity) {
         String gameName = appealSystemConfig
                 .getGameConfigByServerId(event.getInteraction().getGuildId().orElseThrow(MissingGuildContextException::new).asString())
                 .normalizedName();
         return getTextChannel(channelId)
-                .flatMap(channel -> channel.createMessage(CaseInfoMessage.create(event, caseId.toString(), gameName)))
+                .flatMap(channel -> channel.createMessage(CaseInfoMessage.create(caseEntity)))
                 .then();
     }
 
-    private Mono<Void> fetchAndSendRobloxProfileMessage(Snowflake channelId, OpenCloudRobloxProfileDto robloxProfile) {
+    private Mono<Void> fetchAndSendRobloxProfileMessage(Snowflake channelId, RobloxProfileDto robloxProfile) {
         return Mono.fromCallable(() -> openCloudClient.getRobloxAvatar(robloxProfile.id()))
                 .subscribeOn(Schedulers.boundedElastic())
                 .flatMap(avatar -> sendRobloxProfileMessage(channelId, robloxProfile, avatar));
     }
 
     private Mono<Void> sendRobloxProfileMessage(
-            Snowflake channelId, OpenCloudRobloxProfileDto profile, OpenCloudRobloxAvatarDto avatar) {
+            Snowflake channelId, RobloxProfileDto profile, RobloxAvatarDto avatar) {
 
         return getTextChannel(channelId)
                 .flatMap(channel -> channel.createMessage(RobloxProfileMessage.create(profile, avatar)))
@@ -316,14 +316,13 @@ public class CrossroadsModalListener {
         return gatewayDiscordClient.getChannelById(channelId).cast(TextChannel.class);
     }
 
-    private Mono<UUID> persistAppealCase(
+    private Mono<CaseEntity> persistAppealCase(
             ModalSubmitInteractionEvent event, AppealSubmissionContext context, String robloxId, Snowflake channelId) {
 
         final CaseEntity caseEntity = buildCaseEntity(event, context, robloxId, channelId.asString());
 
         return Mono.fromCallable(() -> caseRepository.save(caseEntity))
-                .subscribeOn(Schedulers.boundedElastic())
-                .map(CaseEntity::getId);
+                .subscribeOn(Schedulers.boundedElastic());
     }
 
     private CaseEntity buildCaseEntity(

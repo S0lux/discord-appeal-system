@@ -52,4 +52,9 @@ public class ConfigurationIntegrityChecker {
             throw new RuntimeException("Missing AES configuration details (secretKey and salt)");
         }
     }
+
+    private void openCloudCheck() {
+        if (System.getenv("OPEN_CLOUD_KEY") == null)
+            throw new RuntimeException("Missing open cloud key for handling in-game bans");
+    }
 }

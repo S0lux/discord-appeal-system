@@ -1,6 +1,6 @@
 package com.sopuro.appeal_system;
 
-import com.sopuro.appeal_system.dtos.GenericErrorResponse;
+import com.sopuro.appeal_system.dtos.GenericErrorResponseDto;
 import com.sopuro.appeal_system.exceptions.appeal.CaseNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
@@ -13,8 +13,8 @@ import java.time.Instant;
 @ControllerAdvice
 public class RestExceptionHandler {
     @ExceptionHandler(CaseNotFoundException.class)
-    public ResponseEntity<GenericErrorResponse> handleError(CaseNotFoundException ex, HttpServletRequest request) {
+    public ResponseEntity<GenericErrorResponseDto> handleError(CaseNotFoundException ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new GenericErrorResponse(404, request.getRequestURI(), ex.getMessage(), Instant.now()));
+                .body(new GenericErrorResponseDto(404, request.getRequestURI(), ex.getMessage(), Instant.now()));
     }
 }

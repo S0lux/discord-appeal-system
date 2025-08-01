@@ -4,6 +4,7 @@ import java.util.List;
 
 public record GameConfigDto(
         String name,
+        String universeId,
         List<String> crossroadDescription,
         String image,
         String appealServerId,

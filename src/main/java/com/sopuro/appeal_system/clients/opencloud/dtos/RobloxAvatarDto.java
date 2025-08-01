@@ -1,6 +1,6 @@
 package com.sopuro.appeal_system.clients.opencloud.dtos;
 
-public record OpenCloudRobloxAvatarDto(
+public record RobloxAvatarDto(
     String path,
     boolean done,
     Response response

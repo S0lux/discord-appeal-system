@@ -1,7 +1,7 @@
 package com.sopuro.appeal_system.components.messages;
 
-import com.sopuro.appeal_system.clients.opencloud.dtos.OpenCloudRobloxAvatarDto;
-import com.sopuro.appeal_system.clients.opencloud.dtos.OpenCloudRobloxProfileDto;
+import com.sopuro.appeal_system.clients.opencloud.dtos.RobloxAvatarDto;
+import com.sopuro.appeal_system.clients.opencloud.dtos.RobloxProfileDto;
 import com.sopuro.appeal_system.entities.CaseEntity;
 import com.sopuro.appeal_system.shared.enums.AppealVerdict;
 import discord4j.common.util.TimestampFormat;
@@ -14,8 +14,8 @@ public class CaseLogMessage {
 
     public static MessageCreateSpec create(
             CaseEntity caseEntity,
-            OpenCloudRobloxProfileDto robloxProfileDto,
-            OpenCloudRobloxAvatarDto robloxAvatarDto) {
+            RobloxProfileDto robloxProfileDto,
+            RobloxAvatarDto robloxAvatarDto) {
 
         Color containerColor = caseEntity.getAppealVerdict() == AppealVerdict.ACCEPTED ? Color.GREEN : Color.RED;
         String header = caseEntity.getAppealVerdict() == AppealVerdict.ACCEPTED
@@ -31,6 +31,7 @@ public class CaseLogMessage {
                                         "**Appealer Discord: **" + " <@" + caseEntity.getAppealerDiscordId() + ">"),
                                 TextDisplay.of("**Game: **" + caseEntity.getGame()),
                                 TextDisplay.of("**Type: **" + caseEntity.getPunishmentType()),
+                                TextDisplay.of("**Platform: **" + caseEntity.getAppealPlatform()),
                                 TextDisplay.of("**Closed by: **" + " <@" + caseEntity.getVerdictBy() + ">"),
                                 TextDisplay.of(
                                         "**Closed on: **" + TimestampFormat.LONG_DATE.format(caseEntity.getClosedAt())),
