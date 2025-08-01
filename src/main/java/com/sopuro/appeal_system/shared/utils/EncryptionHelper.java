@@ -46,7 +46,8 @@ public class EncryptionHelper {
             System.arraycopy(iv, 0, encryptedData, 0, iv.length);
             System.arraycopy(cipherText, 0, encryptedData, iv.length, cipherText.length);
 
-            return Base64.getEncoder().encodeToString(encryptedData);
+            // Use URL-safe Base64 encoding without padding
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(encryptedData);
         } catch (Exception ex) {
             log.error("An error has occurred while trying encrypt case access code", ex);
             return null;
@@ -58,7 +59,8 @@ public class EncryptionHelper {
             throw new IllegalArgumentException("Access Code must not be null or blank.");
 
         try {
-            byte[] encryptedData = Base64.getDecoder().decode(accessCode);
+            // Use URL-safe Base64 decoder
+            byte[] encryptedData = Base64.getUrlDecoder().decode(accessCode);
             byte[] iv = new byte[16];
             System.arraycopy(encryptedData, 0, iv, 0, iv.length);
             IvParameterSpec ivspec = new IvParameterSpec(iv);

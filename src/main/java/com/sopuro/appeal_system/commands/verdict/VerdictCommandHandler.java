@@ -189,7 +189,18 @@ public class VerdictCommandHandler implements SlashCommand {
                     .then(updateCaseWithVerdict(caseEntity, verdict, reason, verdictBy));
         }
 
-        // TODO: Implement rejection handling
+        // Removing warnings is a manual process that can't be automated, so does nothing programmatically
+        if (verdict == AppealVerdict.ACCEPTED
+                && caseEntity.getPunishmentType() == PunishmentType.WARN
+                && caseEntity.getAppealPlatform() == AppealPlatform.DISCORD) {
+            return updateCaseWithVerdict(caseEntity, verdict, reason, verdictBy);
+        }
+
+        // Do nothing basically
+        if (verdict == AppealVerdict.REJECTED) {
+            return updateCaseWithVerdict(caseEntity, verdict, reason, verdictBy);
+        }
+
 
         return Mono.error(new AppealException("Unknown verdict handling case"));
     }

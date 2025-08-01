@@ -1,5 +1,6 @@
 package com.sopuro.appeal_system.entities;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.sopuro.appeal_system.shared.enums.AppealPlatform;
 import com.sopuro.appeal_system.shared.enums.AppealVerdict;
 import com.sopuro.appeal_system.shared.enums.PunishmentType;
@@ -72,6 +73,7 @@ public class CaseEntity {
     @Column(name = "cleaned_up_at")
     private Instant cleanedUpAt;
 
+    @JsonManagedReference
     @OneToMany(mappedBy = "appealCase", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude
     private List<MessageLogEntity> messageLogs;

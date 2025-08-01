@@ -37,5 +37,4 @@ public interface CaseRepository extends JpaRepository<CaseEntity, UUID> {
     @Query("SELECT c FROM CaseEntity c WHERE c.closedAt < :#{T(java.time.Instant).now().minus(#days, T(java.time.temporal.ChronoUnit).DAYS)} "
             + "AND c.cleanedUpAt IS NULL")
     List<CaseEntity> getNotCleanedUpOldCases(@Param("days") long days);
-
 }

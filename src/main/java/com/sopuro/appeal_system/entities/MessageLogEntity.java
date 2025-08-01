@@ -1,5 +1,6 @@
 package com.sopuro.appeal_system.entities;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,6 +17,7 @@ public class MessageLogEntity {
     @Id
     private String id;
 
+    @JsonBackReference
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "case_id", nullable = false)
     private CaseEntity appealCase;
