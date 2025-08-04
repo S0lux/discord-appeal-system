@@ -128,10 +128,8 @@ public class VerdictCommandHandler implements SlashCommand {
                 .then();
     }
 
-    private Mono<Tuple2<RobloxProfileDto, RobloxAvatarDto>> getRobloxProfileAndAvatar(
-            String robloxId) {
-        Mono<RobloxProfileDto> profileMono = Mono.fromCallable(
-                        () -> openCloudClient.getRobloxProfile(robloxId))
+    private Mono<Tuple2<RobloxProfileDto, RobloxAvatarDto>> getRobloxProfileAndAvatar(String robloxId) {
+        Mono<RobloxProfileDto> profileMono = Mono.fromCallable(() -> openCloudClient.getRobloxProfile(robloxId))
                 .subscribeOn(Schedulers.boundedElastic());
 
         Mono<RobloxAvatarDto> avatarMono = Mono.fromCallable(() -> openCloudClient.getRobloxAvatar(robloxId))
@@ -200,7 +198,6 @@ public class VerdictCommandHandler implements SlashCommand {
         if (verdict == AppealVerdict.REJECTED) {
             return updateCaseWithVerdict(caseEntity, verdict, reason, verdictBy);
         }
-
 
         return Mono.error(new AppealException("Unknown verdict handling case"));
     }
@@ -294,6 +291,10 @@ public class VerdictCommandHandler implements SlashCommand {
                                                     PermissionOverwrite.forMember(
                                                             appealerId,
                                                             RoleOverwrites.Member.CLOSED_PERMISSIONS,
+                                                            PermissionSet.all()),
+                                                    PermissionOverwrite.forRole(
+                                                            channel.getGuildId(),
+                                                            PermissionSet.none(),
                                                             PermissionSet.all()),
                                                     PermissionOverwrite.forRole(
                                                             Snowflake.of(gameConfig.appealJudgeRoleId()),
