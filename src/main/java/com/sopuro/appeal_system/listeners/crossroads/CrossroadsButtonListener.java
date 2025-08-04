@@ -171,35 +171,7 @@ public class CrossroadsButtonListener {
                 gameConfig.normalizedName(),
                 guildId);
 
-        //        return event.presentModal(ModalAppealGame.createModal())
-        //                .doOnSuccess(ignored -> log.debug("Successfully presented in-game appeal modal to user {}",
-        // userInfo));
-
-        return event.deferReply().withEphemeral(true)
-                .then(Mono.defer(() -> checkUserBannedInGame(event.getUser().getId(), gameConfig)))
-                .then(Mono.defer(() -> event.presentModal(GameAppealModal.INSTANCE.createModal())))
-                .then();
-    }
-
-    private Mono<Void> checkUserBannedInGame(Snowflake userId, GameConfigDto gameConfig) {
-        String token = TokenHelper.retrieveRoverTokenForGame(gameConfig.normalizedName(), ServerType.APPEAL);
-
-        return Mono.fromCallable(() -> roverClient.toRoblox(gameConfig.appealServerId(), userId.asString(), token))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(profile -> getUserRestriction(gameConfig, profile))
-                .then()
-                .onErrorResume(HttpClientErrorException.NotFound.class,
-                        _ -> Mono.error(new UserIsNotRobloxBannedException(gameConfig.name())));
-    }
-
-    private Mono<Void> getUserRestriction(GameConfigDto gameConfig, DiscordToRobloxDto profile) {
-        return Mono.fromCallable(() -> openCloudClient.getUserRestriction(
-                        gameConfig.universeId(), String.valueOf(profile.robloxId())))
-                .subscribeOn(Schedulers.boundedElastic())
-                .flatMap(userRestriction ->
-                        userRestriction.gameJoinRestriction().active() ?
-                                Mono.empty() : // Success case - User is banned
-                                Mono.error(new UserIsNotRobloxBannedException(gameConfig.name())));
+        return event.presentModal(GameAppealModal.INSTANCE.createModal());
     }
 
     private Mono<Void> handleInteractionError(ButtonInteractionEvent event, Throwable error) {

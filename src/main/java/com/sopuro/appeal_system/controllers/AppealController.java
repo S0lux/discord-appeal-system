@@ -2,7 +2,7 @@ package com.sopuro.appeal_system.controllers;
 
 import com.sopuro.appeal_system.entities.CaseEntity;
 import com.sopuro.appeal_system.exceptions.appeal.CaseNotFoundException;
-import com.sopuro.appeal_system.services.AppealService;
+import com.sopuro.appeal_system.services.AppealHistoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,7 +16,7 @@ import java.util.Optional;
 @RequestMapping("appeals")
 @RequiredArgsConstructor
 public class AppealController {
-    private final AppealService appealService;
+    private final AppealHistoryService appealService;
 
     @GetMapping("/{access-code}")
     public ResponseEntity<CaseEntity> retrieveCaseByAccessCode(

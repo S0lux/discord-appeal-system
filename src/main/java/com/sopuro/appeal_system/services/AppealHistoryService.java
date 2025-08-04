@@ -13,7 +13,7 @@ import java.util.UUID;
 @Service
 @Slf4j
 @RequiredArgsConstructor
-public class AppealService {
+public class AppealHistoryService {
     private final CaseRepository caseRepository;
 
     public Optional<CaseEntity> retrieveCaseByAccessCode(String accessCode) {

@@ -210,7 +210,7 @@ public class VerdictCommandHandler implements SlashCommand {
 
     private Mono<Void> performRoverUnban(String guildId, String robloxId, String roverToken, String gameName) {
         return Mono.fromCallable(() -> roverClient.deleteBan(guildId, robloxId, roverToken))
-                .doOnSuccess(result ->
+                .doOnSuccess(ignored ->
                         log.debug("Successfully unbanned robloxId '{}' from Rover for game {}", robloxId, gameName))
                 .onErrorResume(throwable -> handleRoverUnbanError(throwable, guildId, robloxId, gameName))
                 .then();

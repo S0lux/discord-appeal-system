@@ -60,6 +60,9 @@ public class CaseEntity {
     @Column(name = "punishment_reason", nullable = false, columnDefinition = "TEXT")
     private String punishmentReason;
 
+    @Column(name = "appeal_video_url", columnDefinition = "TEXT")
+    private String videoUrl;
+
     @Column(name = "channel_id", nullable = false)
     private String channelId;
 

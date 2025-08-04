@@ -4,8 +4,13 @@ import com.sopuro.appeal_system.dtos.GameConfigDto;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.stream.Stream;
 
 @ConfigurationProperties(prefix = "appeal-system")
@@ -53,5 +58,23 @@ public class AppealSystemConfig {
 
     public String getOverseerRoleId(String serverId) {
         return getGameConfigByServerId(serverId).appealOverseerRoleId();
+    }
+
+    @Bean("appealProcessingExecutor")
+    public Executor appealProcessingExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(20);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("appeal-processing-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean
+    public Scheduler appealProcessingScheduler(Executor appealProcessingExecutor) {
+        return Schedulers.fromExecutor(appealProcessingExecutor);
     }
 }

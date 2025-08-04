@@ -71,7 +71,8 @@ public class GameAppealModal extends BaseAppealModal {
 
     @Override
     public PunishmentType getPunishmentTypeFromModalId(String modalId) {
-        throw new UnsupportedOperationException("GameAppealModal does not encode punishment type in modal ID");
+        // Default to BAN for in-game appeals
+        return PunishmentType.BAN;
     }
 
     @Override
