@@ -7,7 +7,7 @@ import com.sopuro.appeal_system.clients.rover.RoverClient;
 import com.sopuro.appeal_system.components.messages.CaseHistoryMessage;
 import com.sopuro.appeal_system.components.messages.CaseInfoMessage;
 import com.sopuro.appeal_system.components.messages.RobloxProfileMessage;
-import com.sopuro.appeal_system.components.modals.ModalAppealDiscord;
+import com.sopuro.appeal_system.components.modals.DiscordAppealModal;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.entities.CaseEntity;
@@ -47,7 +47,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @Slf4j
@@ -80,7 +79,7 @@ public class CrossroadsModalListener {
     }
 
     private boolean isDiscordAppealModal(ModalSubmitInteractionEvent event) {
-        return event.getCustomId().startsWith(ModalAppealDiscord.DISCORD_MODAL_PREFIX);
+        return event.getCustomId().startsWith(DiscordAppealModal.INSTANCE.getModalPrefix());
     }
 
     private Mono<Void> processModalSubmission(ModalSubmitInteractionEvent event) {
@@ -101,7 +100,7 @@ public class CrossroadsModalListener {
                 .then(validateSubmission(context))
                 .then(processAppealSubmission(event, context))
                 .flatMap(channelId -> sendSuccessResponse(event, context.discordUserId(), channelId))
-                .doOnSuccess(unused -> logSuccessfulSubmission(context, submittedAt));
+                .doOnSuccess(ignored -> logSuccessfulSubmission(context, submittedAt));
     }
 
     private AppealSubmissionContext createSubmissionContext(ModalSubmitInteractionEvent event, Instant submittedAt) {
@@ -113,11 +112,12 @@ public class CrossroadsModalListener {
         final String customId = event.getCustomId();
 
         return new AppealSubmissionContext(
+                customId.startsWith(DiscordAppealModal.INSTANCE.getModalPrefix()) ? AppealPlatform.DISCORD : AppealPlatform.GAME,
                 guildId,
                 user.getId().asString(),
                 user.getUsername(),
                 appealSystemConfig.getGameConfigByServerId(guildId).normalizedName(),
-                ModalAppealDiscord.getPunishmentTypeFromModalId(customId),
+                DiscordAppealModal.INSTANCE.getPunishmentTypeFromModalId(customId),
                 submittedAt);
     }
 
@@ -171,7 +171,7 @@ public class CrossroadsModalListener {
                 .subscribeOn(Schedulers.boundedElastic())
                 .map(robloxAccount -> String.valueOf(robloxAccount.robloxId()))
                 .flatMap(this::fetchRobloxProfile)
-                .onErrorMap(HttpClientErrorException.NotFound.class, ex -> new RobloxAccountNotVerifiedException());
+                .onErrorMap(HttpClientErrorException.NotFound.class, ignored -> new RobloxAccountNotVerifiedException());
     }
 
     private Mono<RobloxProfileDto> fetchRobloxProfile(String robloxId) {
@@ -195,7 +195,7 @@ public class CrossroadsModalListener {
             RobloxProfileDto robloxProfile,
             CaseEntity caseEntity) {
 
-        return sendCaseDetailsMessage(channelId, event, caseEntity)
+        return sendCaseDetailsMessage(channelId, caseEntity)
                 .then(fetchAndSendRobloxProfileMessage(channelId, robloxProfile))
                 .then(sendCaseHistoryMessage(
                         channelId,
@@ -278,10 +278,7 @@ public class CrossroadsModalListener {
                         PermissionSet.none()));
     }
 
-    private Mono<Void> sendCaseDetailsMessage(Snowflake channelId, ModalSubmitInteractionEvent event, CaseEntity caseEntity) {
-        String gameName = appealSystemConfig
-                .getGameConfigByServerId(event.getInteraction().getGuildId().orElseThrow(MissingGuildContextException::new).asString())
-                .normalizedName();
+    private Mono<Void> sendCaseDetailsMessage(Snowflake channelId, CaseEntity caseEntity) {
         return getTextChannel(channelId)
                 .flatMap(channel -> channel.createMessage(CaseInfoMessage.create(caseEntity)))
                 .then();
@@ -333,9 +330,9 @@ public class CrossroadsModalListener {
         caseEntity.setAppealerRobloxId(robloxId);
         caseEntity.setChannelId(channelId);
         caseEntity.setPunishmentType(context.punishmentType());
-        caseEntity.setPunishmentReason(ModalAppealDiscord.getPunishmentReason(event));
+        caseEntity.setPunishmentReason(DiscordAppealModal.INSTANCE.getPunishmentReason(event));
         caseEntity.setGame(context.normalizedGameName());
-        caseEntity.setAppealReason(ModalAppealDiscord.getAppealReason(event));
+        caseEntity.setAppealReason(DiscordAppealModal.INSTANCE.getAppealReason(event));
         caseEntity.setAppealVerdict(AppealVerdict.PENDING);
         caseEntity.setAppealPlatform(AppealPlatform.DISCORD);
         caseEntity.setAppealedAt(context.submittedAt());
@@ -381,6 +378,7 @@ public class CrossroadsModalListener {
     }
 
     private record AppealSubmissionContext(
+            AppealPlatform platform,
             String guildId,
             String discordUserId,
             String username,

@@ -1,7 +1,7 @@
 package com.sopuro.appeal_system.listeners.crossroads;
 
 import com.sopuro.appeal_system.components.menus.MenuAppealDiscord;
-import com.sopuro.appeal_system.components.modals.ModalAppealDiscord;
+import com.sopuro.appeal_system.components.modals.DiscordAppealModal;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.exceptions.AppealException;
@@ -157,11 +157,11 @@ public class CrossroadsMenuListener {
     }
 
     private Mono<Void> presentBanAppealModal(SelectMenuInteractionEvent event) {
-        return event.presentModal(ModalAppealDiscord.createModal(PunishmentType.BAN));
+        return event.presentModal(DiscordAppealModal.INSTANCE.createModal(PunishmentType.BAN));
     }
 
     private Mono<Void> presentWarningAppealModal(SelectMenuInteractionEvent event) {
-        return event.presentModal(ModalAppealDiscord.createModal(PunishmentType.WARN));
+        return event.presentModal(DiscordAppealModal.INSTANCE.createModal(PunishmentType.WARN));
     }
 
     private Mono<Void> handleInteractionError(SelectMenuInteractionEvent event, Throwable error) {

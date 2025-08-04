@@ -6,7 +6,7 @@ import com.sopuro.appeal_system.clients.rover.dtos.DiscordToRobloxDto;
 import com.sopuro.appeal_system.commands.panel.PanelCommandHandler;
 import com.sopuro.appeal_system.components.menus.MenuAppealDiscord;
 import com.sopuro.appeal_system.components.messages.GenericErrorMessageEmbed;
-import com.sopuro.appeal_system.components.modals.ModalAppealGame;
+import com.sopuro.appeal_system.components.modals.GameAppealModal;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.entities.GuildConfigEntity;
@@ -177,7 +177,7 @@ public class CrossroadsButtonListener {
 
         return event.deferReply().withEphemeral(true)
                 .then(Mono.defer(() -> checkUserBannedInGame(event.getUser().getId(), gameConfig)))
-                .then(Mono.defer(() -> event.presentModal(ModalAppealGame.createModal())))
+                .then(Mono.defer(() -> event.presentModal(GameAppealModal.INSTANCE.createModal())))
                 .then();
     }
 

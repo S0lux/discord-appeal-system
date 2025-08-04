@@ -10,14 +10,13 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class RobloxProfileMessage {
-    private static String robloxEmoji;
 
     public static MessageCreateSpec create(
             RobloxProfileDto robloxProfileDto, RobloxAvatarDto robloxAvatarDto) {
         return MessageCreateSpec.create()
                 .withFlags(Message.Flag.IS_COMPONENTS_V2)
                 .withComponents(Container.of(
-                        TextDisplay.of("# " + robloxEmoji + "  ROBLOX PROFILE"),
+                        TextDisplay.of("#  :video_game: ROBLOX PROFILE"),
                         Section.of(
                                 Thumbnail.of(UnfurledMediaItem.of(robloxAvatarDto.response().imageUri())),
                                 TextDisplay.of("**ID:** " + "`" + robloxProfileDto.id() + "`"),
