@@ -130,6 +130,7 @@ public class CommandListener {
                 ? error.getMessage()
                 : "An unexpected error occurred while processing your command.";
 
+        if (!(error instanceof AppealException)) log.error("Unexpected error: ", error);
         return event.editReply(GenericErrorMessageEmbed.create(message)).then();
     }
 }

@@ -3,6 +3,7 @@ package com.sopuro.appeal_system.commands.verdict;
 import com.sopuro.appeal_system.clients.opencloud.OpenCloudClient;
 import com.sopuro.appeal_system.clients.opencloud.dtos.RobloxAvatarDto;
 import com.sopuro.appeal_system.clients.opencloud.dtos.RobloxProfileDto;
+import com.sopuro.appeal_system.clients.opencloud.dtos.RobloxUserUnbanDto;
 import com.sopuro.appeal_system.clients.rover.RoverClient;
 import com.sopuro.appeal_system.commands.SlashCommand;
 import com.sopuro.appeal_system.components.messages.CaseLogDirectMessage;
@@ -11,10 +12,7 @@ import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.entities.CaseEntity;
 import com.sopuro.appeal_system.exceptions.AppealException;
-import com.sopuro.appeal_system.exceptions.appeal.AppealAlreadyCompletedException;
-import com.sopuro.appeal_system.exceptions.appeal.IncorrectServerSetupException;
-import com.sopuro.appeal_system.exceptions.appeal.NotAppealChannelException;
-import com.sopuro.appeal_system.exceptions.appeal.NotInCommunityServerException;
+import com.sopuro.appeal_system.exceptions.appeal.*;
 import com.sopuro.appeal_system.exceptions.rover.RoverUnbanFailedException;
 import com.sopuro.appeal_system.repositories.CaseRepository;
 import com.sopuro.appeal_system.repositories.GuildConfigRepository;
@@ -192,6 +190,23 @@ public class VerdictCommandHandler implements SlashCommand {
                 && caseEntity.getPunishmentType() == PunishmentType.WARN
                 && caseEntity.getAppealPlatform() == AppealPlatform.DISCORD) {
             return updateCaseWithVerdict(caseEntity, verdict, reason, verdictBy);
+        }
+
+        if (verdict == AppealVerdict.ACCEPTED
+                && caseEntity.getPunishmentType() == PunishmentType.BAN
+                && caseEntity.getAppealPlatform() == AppealPlatform.GAME) {
+            return Mono.fromCallable(() -> openCloudClient.unbanUser(
+                            gameConfig.universeId(),
+                            robloxId,
+                            new RobloxUserUnbanDto(new RobloxUserUnbanDto.RobloxGameJoinUnbanDto(false))))
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .onErrorResume(
+                            HttpClientErrorException.NotFound.class,
+                            ignored -> Mono.empty()) // User is not banned, treat as success
+                    .onErrorResume(
+                            HttpClientErrorException.TooManyRequests.class,
+                            ignored -> Mono.error(new ApiTooManyRequestException()))
+                    .then(updateCaseWithVerdict(caseEntity, verdict, reason, verdictBy));
         }
 
         // Do nothing basically
