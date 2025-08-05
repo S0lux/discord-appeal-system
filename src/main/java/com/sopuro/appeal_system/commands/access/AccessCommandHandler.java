@@ -1,6 +1,7 @@
 package com.sopuro.appeal_system.commands.access;
 
 import com.sopuro.appeal_system.commands.SlashCommand;
+import com.sopuro.appeal_system.components.messages.AccessCodeDetailsMessage;
 import com.sopuro.appeal_system.components.messages.CaseAccessDetailsMessage;
 import com.sopuro.appeal_system.entities.CaseEntity;
 import com.sopuro.appeal_system.exceptions.AppealException;
@@ -11,6 +12,7 @@ import com.sopuro.appeal_system.shared.utils.EncryptionHelper;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ChatInputInteractionEvent;
+import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.User;
 import discord4j.core.spec.MessageCreateSpec;
@@ -36,7 +38,7 @@ public class AccessCommandHandler implements SlashCommand {
 
     @Override
     public String getName() {
-        return "access";
+        return "code";
     }
 
     @Override
@@ -46,32 +48,62 @@ public class AccessCommandHandler implements SlashCommand {
 
     @Override
     public Mono<Void> preCondition(ChatInputInteractionEvent event) {
-        // Check if case ID is valid UUID
-        try {
-            getIdFromCommand(event);
-            return Mono.empty();
-        } catch (IllegalArgumentException ex) {
-            return Mono.error(new AppealException("This is not a valid case ID."));
-        }
+        return Mono.empty();
     }
 
     @Override
     public Mono<Void> handle(ChatInputInteractionEvent event) {
-        UUID caseId = getIdFromCommand(event);
-        return getCaseById(caseId)
-                .flatMap(caseEntity -> sendAccessDetailsToDM(event.getUser().getId(), caseEntity))
-                .then(Mono.defer(
-                        () -> event.editReply("A message containing access details has been delivered to your DM.")))
-                .then();
+        String subCommand = getSubcommand(event);
+        return switch (subCommand) {
+            case "generate" -> handleGenerateCommand(event);
+            case "info" -> handleInfoCommand(event);
+            default -> throw new IllegalStateException("Unexpected value: " + subCommand);
+        };
     }
 
-    private UUID getIdFromCommand(ChatInputInteractionEvent event) throws IllegalArgumentException {
-        return event.getOption("case_id")
-                .map(option ->
-                        option.getValue().orElseThrow(() -> new IllegalArgumentException("CaseID option is required")))
+    private String getSubcommand(ChatInputInteractionEvent event) {
+        return event.getOptions().getFirst().getName();
+    }
+
+    private Mono<Void> handleGenerateCommand(ChatInputInteractionEvent event) {
+        ApplicationCommandInteractionOption option =
+                event.getOption("generate").orElseThrow(() -> new IllegalStateException("This option is expected"));
+
+        try {
+            UUID caseId = UUID.fromString(getFieldFromCommandOption(option, "case_id"));
+            return getCaseById(caseId)
+                    .flatMap(caseEntity -> sendAccessDetailsToDM(event.getUser().getId(), caseEntity))
+                    .then(Mono.defer(
+                            () -> event.editReply("A message containing access details has been delivered to your DM")))
+                    .then();
+        } catch (IllegalArgumentException ex) {
+            return Mono.error(new AppealException("This is not a valid case ID"));
+        }
+    }
+
+    private Mono<Void> handleInfoCommand(ChatInputInteractionEvent event) {
+        ApplicationCommandInteractionOption option =
+                event.getOption("info").orElseThrow(() -> new IllegalStateException("This option is expected"));
+
+        try {
+            String accessCode = getFieldFromCommandOption(option, "access_code");
+            EncryptionHelper.CaseAccessDetails details = EncryptionHelper.decryptCaseAccessCode(accessCode);
+
+            if (details == null)
+                return event.editReply("Not a valid access code").then();
+            else return event.editReply(AccessCodeDetailsMessage.create(details)).then();
+        } catch (IllegalArgumentException ex) {
+            return Mono.error(new AppealException("This is not a valid case ID"));
+        }
+    }
+
+    private String getFieldFromCommandOption(ApplicationCommandInteractionOption option, String field) throws IllegalArgumentException {
+        return option.getOption(field)
+                .map(caseIdOption -> caseIdOption
+                        .getValue()
+                        .orElseThrow(() -> new IllegalArgumentException("Required option: " + field)))
                 .map(ApplicationCommandInteractionOptionValue::asString)
-                .map(UUID::fromString)
-                .orElseThrow(() -> new IllegalArgumentException("Decision option is required"));
+                .orElseThrow(() -> new IllegalArgumentException("Required option: " + field));
     }
 
     private Mono<CaseEntity> getCaseById(UUID caseId) throws CaseNotFoundException {

@@ -1,0 +1,45 @@
+{
+  "name": "code",
+  "description": "Operations relating to access codes.",
+  "options": [
+    {
+      "name": "generate",
+      "description": "Generates access which will be delivered to your DM.",
+      "type": 1,
+      "options": [
+        {
+          "name": "case_id",
+          "description": "The ID of the case to generate access code for",
+          "type": 3,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "revoke",
+      "description": "Revoke an access code",
+      "type": 1,
+      "options": [
+        {
+          "name": "access_code",
+          "description": "The access code to be revoked",
+          "type": 3,
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "info",
+      "description": "Get information about an access code",
+      "type": 1,
+      "options": [
+        {
+          "name": "access_code",
+          "description": "The access code to be queried",
+          "type": 3,
+          "required": true
+        }
+      ]
+    }
+  ]
+}
