@@ -10,16 +10,22 @@ import discord4j.core.spec.MessageCreateSpec;
 public class CaseInfoMessage {
 
     public static MessageCreateSpec create(CaseEntity caseEntity) {
+        Container container = Container.of(
+                TextDisplay.of("# :information_source:  CASE DETAILS"),
+                TextDisplay.of("**Case ID:** " + "`" + caseEntity.getId() + "`"),
+                TextDisplay.of("**Game:** " + caseEntity.getGame()),
+                Separator.of(),
+                TextDisplay.of("**Punishment Type:** " + caseEntity.getPunishmentType()),
+                TextDisplay.of("**Punishment Platform:** " + caseEntity.getAppealPlatform()),
+                TextDisplay.of("**Punishment Reason:** \n> " + caseEntity.getPunishmentReason()),
+                TextDisplay.of("**Appeal Reason:** \n> " + caseEntity.getAppealReason()));
+
+        container = caseEntity.getVideoUrl() != null
+                ? container.withAddedComponent(TextDisplay.of("**Appeal Video:** \n> " + caseEntity.getVideoUrl()))
+                : container;
+
         return MessageCreateSpec.create()
                 .withFlags(Message.Flag.IS_COMPONENTS_V2)
-                .withComponents(Container.of(
-                        TextDisplay.of("# :information_source:  CASE DETAILS"),
-                        TextDisplay.of("**Case ID:** " + "`" + caseEntity.getId() + "`"),
-                        TextDisplay.of("**Game:** " + caseEntity.getGame()),
-                        Separator.of(),
-                        TextDisplay.of("**Punishment Type:** " + caseEntity.getPunishmentType()),
-                        TextDisplay.of("**Punishment Platform:** " + caseEntity.getAppealPlatform()),
-                        TextDisplay.of("**Punishment Reason:** \n> " + caseEntity.getPunishmentReason()),
-                        TextDisplay.of("**Appeal Reason:** \n> " + caseEntity.getAppealReason())));
+                .withComponents(container);
     }
 }
