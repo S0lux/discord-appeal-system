@@ -13,14 +13,13 @@ public class CaseAccessDetailsMessage {
         return MessageCreateSpec.create()
                 .withEmbeds(EmbedCreateSpec.create()
                         .withTitle("Case Access Details")
-                        .withDescription(String.format(
-                                "The following are the access details for the case: %s\n**Do not share these information**, they are for your eyes only.",
-                                caseEntity.getId()))
+                        .withDescription("**Do not share these information**, they are for your eyes only.")
                         .withFields(EmbedCreateFields.Field.of(
                                 "Access Link",
                                 String.format("[Here](https://%s/appeals/%s)", accessDomain, accessCode),
                                 false))
                         .withTimestamp(Instant.now())
+                        .withFooter(EmbedCreateFields.Footer.of("Case ID: " + caseEntity.getId(), null))
                         .withColor(Color.SUMMER_SKY));
     }
 }
