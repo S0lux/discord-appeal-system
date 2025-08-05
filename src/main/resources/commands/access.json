@@ -1,0 +1,12 @@
+{
+  "name": "access",
+  "description": "Retrieve a link to access a particular case using its ID",
+  "options": [
+    {
+      "name": "case_id",
+      "description": "The ID of the case",
+      "type": 3,
+      "required": true
+    }
+  ]
+}

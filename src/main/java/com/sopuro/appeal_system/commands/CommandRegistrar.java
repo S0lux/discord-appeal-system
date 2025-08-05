@@ -29,7 +29,7 @@ import java.util.concurrent.TimeoutException;
 @Slf4j
 public class CommandRegistrar implements ApplicationRunner {
 
-    private static final Set<String> APPEAL_ONLY_COMMANDS = Set.of("appeals", "panel", "setup", "verdict");
+    private static final Set<String> APPEAL_ONLY_COMMANDS = Set.of("appeals", "panel", "setup", "verdict", "access");
     private static final String COMMANDS_PATTERN = "commands/*.json";
     private static final Duration REGISTRATION_TIMEOUT = Duration.ofSeconds(30);
 
