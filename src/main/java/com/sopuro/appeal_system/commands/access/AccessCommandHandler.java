@@ -91,13 +91,18 @@ public class AccessCommandHandler implements SlashCommand {
 
             if (details == null)
                 return event.editReply("Not a valid access code").then();
-            else return event.editReply(AccessCodeDetailsMessage.create(details)).then();
+            else
+                return event.deleteReply().then(Mono.defer(() -> event.getInteraction()
+                        .getChannel()
+                        .flatMap(channel -> channel.createMessage(AccessCodeDetailsMessage.create(details)))
+                        .then()));
         } catch (IllegalArgumentException ex) {
             return Mono.error(new AppealException("This is not a valid case ID"));
         }
     }
 
-    private String getFieldFromCommandOption(ApplicationCommandInteractionOption option, String field) throws IllegalArgumentException {
+    private String getFieldFromCommandOption(ApplicationCommandInteractionOption option, String field)
+            throws IllegalArgumentException {
         return option.getOption(field)
                 .map(caseIdOption -> caseIdOption
                         .getValue()
