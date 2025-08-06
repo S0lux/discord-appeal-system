@@ -1,6 +1,7 @@
 package com.sopuro.appeal_system.commands.setup;
 
 import com.sopuro.appeal_system.commands.SlashCommand;
+import com.sopuro.appeal_system.components.messages.GenericSuccessFollowUp;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.entities.GuildConfigEntity;
 import com.sopuro.appeal_system.exceptions.appeal.CategoryAlreadySetupException;
@@ -70,7 +71,7 @@ public class SetupCommandHandler implements SlashCommand {
         return event.getInteraction().getGuild().flatMap(guild -> Mono.when(
                         createAppealCategory(guild, CATEGORY_OPEN_APPEALS),
                         createAppealCategory(guild, CATEGORY_CLOSED_APPEALS))
-                .then(event.editReply("Setup completed successfully!"))
+                .then(event.createFollowup(GenericSuccessFollowUp.create("Server has been successfully configured")))
                 .then());
     }
 

@@ -1,6 +1,6 @@
 package com.sopuro.appeal_system.commands;
 
-import com.sopuro.appeal_system.components.messages.GenericErrorMessageEmbed;
+import com.sopuro.appeal_system.components.messages.GenericErrorFollowUp;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.exceptions.AppealException;
 import com.sopuro.appeal_system.exceptions.appeal.ApplicationMisconfiguredException;
@@ -126,11 +126,9 @@ public class CommandListener {
     }
 
     private Mono<Void> handleCommandError(ChatInputInteractionEvent event, Throwable error) {
-        String message = (error instanceof AppealException)
-                ? error.getMessage()
-                : "An unexpected error occurred while processing your command.";
+        boolean isExpected = error instanceof AppealException;
 
-        if (!(error instanceof AppealException)) log.error("Unexpected error: ", error);
-        return event.editReply(GenericErrorMessageEmbed.create(message)).then();
+        return event.createFollowup(GenericErrorFollowUp.create(error.getMessage(), isExpected))
+                .then();
     }
 }

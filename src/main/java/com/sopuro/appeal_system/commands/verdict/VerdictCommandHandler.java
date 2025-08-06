@@ -8,6 +8,7 @@ import com.sopuro.appeal_system.clients.rover.RoverClient;
 import com.sopuro.appeal_system.commands.SlashCommand;
 import com.sopuro.appeal_system.components.messages.CaseLogDirectMessage;
 import com.sopuro.appeal_system.components.messages.CaseLogMessage;
+import com.sopuro.appeal_system.components.messages.GenericSuccessFollowUp;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.entities.CaseEntity;
@@ -114,7 +115,8 @@ public class VerdictCommandHandler implements SlashCommand {
                                                         .cast(TextChannel.class)
                                                         .flatMap(channel -> channel.createMessage(
                                                                 CaseLogMessage.create(updatedCase, profile, avatar))))
-                                        .then(event.editReply("Verdict applied successfully!"))
+                                        .then(event.createFollowup(
+                                                GenericSuccessFollowUp.create("Verdict has been applied")))
                                         .thenReturn(updatedCase);
                             });
                 })

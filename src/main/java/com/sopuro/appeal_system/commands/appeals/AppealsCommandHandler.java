@@ -1,6 +1,7 @@
 package com.sopuro.appeal_system.commands.appeals;
 
 import com.sopuro.appeal_system.commands.SlashCommand;
+import com.sopuro.appeal_system.components.messages.GenericSuccessFollowUp;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.entities.GuildConfigEntity;
 import com.sopuro.appeal_system.exceptions.appeal.MissingGuildContextException;
@@ -42,8 +43,7 @@ public class AppealsCommandHandler implements SlashCommand {
                 .orElseThrow(MissingGuildContextException::new)
                 .asString();
 
-        if (!appealSystemConfig.isAppealServer(guildId))
-            return Mono.error(new NotAppealGuildException(guildId));
+        if (!appealSystemConfig.isAppealServer(guildId)) return Mono.error(new NotAppealGuildException(guildId));
 
         return Mono.empty();
     }
@@ -70,8 +70,10 @@ public class AppealsCommandHandler implements SlashCommand {
 
                     return Mono.just(guildConfigRepository.save(guildConfig));
                 })
-                .flatMap(config -> event
-                        .editReply("Appeal system has been " + (appealEnabled ? "enabled" : "disabled") + ".")
+                .flatMap(config -> event.createFollowup(GenericSuccessFollowUp.create(
+                                appealEnabled
+                                        ? "Server is now accepting new appeals"
+                                        : "Server is no longer accepting new appeals"))
                         .then());
     }
 }

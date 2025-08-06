@@ -7,6 +7,7 @@ import com.sopuro.appeal_system.clients.rover.RoverClient;
 import com.sopuro.appeal_system.clients.rover.dtos.DiscordToRobloxDto;
 import com.sopuro.appeal_system.components.messages.CaseHistoryMessage;
 import com.sopuro.appeal_system.components.messages.CaseInfoMessage;
+import com.sopuro.appeal_system.components.messages.GenericErrorFollowUp;
 import com.sopuro.appeal_system.components.messages.RobloxProfileMessage;
 import com.sopuro.appeal_system.components.modals.DiscordAppealModal;
 import com.sopuro.appeal_system.components.modals.GameAppealModal;
@@ -59,7 +60,7 @@ public class CrossroadsModalListener {
     private static final String CHANNEL_TOPIC_FORMAT = "Appeal channel for **%s** (%s)\nAppealed at: %s";
     private static final String SUCCESS_MESSAGE_FORMAT =
             "<@%s> Your appeal has been successfully submitted! Please check the channel <#%s> for details.";
-    private static final String ERROR_MESSAGE =
+    private static final String DEFAULT_ERROR_MESSAGE =
             "An error occurred while processing your command. Please try again later.";
     private static final String TIMEOUT_MESSAGE = "The request timed out. Please try again.";
 
@@ -408,13 +409,11 @@ public class CrossroadsModalListener {
     }
 
     private Mono<Void> handleModalSubmissionError(ModalSubmitInteractionEvent event, Throwable error) {
-        if (error instanceof AppealException appealException) {
-            log.warn("Appeal processing failed: {}", appealException.getMessage());
-            return event.editReply(appealException.getMessage()).then();
-        }
+        boolean isExpected = error instanceof AppealException;
+        String message = isExpected ? error.getMessage() : DEFAULT_ERROR_MESSAGE;
+        if (!isExpected) log.error("Unexpected error during appeal processing", error);
 
-        log.error("Unexpected error during appeal processing", error);
-        return event.editReply(ERROR_MESSAGE).then();
+        return event.createFollowup(GenericErrorFollowUp.create(message, isExpected)).then();
     }
 
     private Mono<Void> handleTimeout(ModalSubmitInteractionEvent event, Throwable error) {

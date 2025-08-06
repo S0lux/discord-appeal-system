@@ -3,9 +3,12 @@ package com.sopuro.appeal_system.commands.access;
 import com.sopuro.appeal_system.commands.SlashCommand;
 import com.sopuro.appeal_system.components.messages.AccessCodeDetailsMessage;
 import com.sopuro.appeal_system.components.messages.CaseAccessDetailsMessage;
+import com.sopuro.appeal_system.components.messages.GenericSuccessFollowUp;
+import com.sopuro.appeal_system.entities.AccessCodeBlacklistEntity;
 import com.sopuro.appeal_system.entities.CaseEntity;
 import com.sopuro.appeal_system.exceptions.AppealException;
 import com.sopuro.appeal_system.exceptions.appeal.CaseNotFoundException;
+import com.sopuro.appeal_system.repositories.AccessCodeBlacklistRepository;
 import com.sopuro.appeal_system.repositories.CaseRepository;
 import com.sopuro.appeal_system.shared.enums.AppealRole;
 import com.sopuro.appeal_system.shared.utils.EncryptionHelper;
@@ -31,6 +34,7 @@ import java.util.UUID;
 @Slf4j
 public class AccessCommandHandler implements SlashCommand {
     private final CaseRepository caseRepository;
+    private final AccessCodeBlacklistRepository blacklistRepository;
     private final GatewayDiscordClient gateway;
 
     @Value("${appeal-system.front-end.domain}")
@@ -57,6 +61,7 @@ public class AccessCommandHandler implements SlashCommand {
         return switch (subCommand) {
             case "generate" -> handleGenerateCommand(event);
             case "info" -> handleInfoCommand(event);
+            case "revoke" -> handleRevokeCommand(event);
             default -> throw new IllegalStateException("Unexpected value: " + subCommand);
         };
     }
@@ -73,8 +78,8 @@ public class AccessCommandHandler implements SlashCommand {
             UUID caseId = UUID.fromString(getFieldFromCommandOption(option, "case_id"));
             return getCaseById(caseId)
                     .flatMap(caseEntity -> sendAccessDetailsToDM(event.getUser().getId(), caseEntity))
-                    .then(Mono.defer(
-                            () -> event.editReply("A message containing access details has been delivered to your DM")))
+                    .then(event.createFollowup(GenericSuccessFollowUp.create(
+                            "A message containing access details has been delivered to your DM")))
                     .then();
         } catch (IllegalArgumentException ex) {
             return Mono.error(new AppealException("This is not a valid case ID"));
@@ -85,20 +90,36 @@ public class AccessCommandHandler implements SlashCommand {
         ApplicationCommandInteractionOption option =
                 event.getOption("info").orElseThrow(() -> new IllegalStateException("This option is expected"));
 
-        try {
-            String accessCode = getFieldFromCommandOption(option, "access_code");
-            EncryptionHelper.CaseAccessDetails details = EncryptionHelper.decryptCaseAccessCode(accessCode);
+        String accessCode = getFieldFromCommandOption(option, "access_code");
+        EncryptionHelper.CaseAccessDetails details = EncryptionHelper.decryptCaseAccessCode(accessCode);
 
-            if (details == null)
-                return event.editReply("Not a valid access code").then();
-            else
-                return event.deleteReply().then(Mono.defer(() -> event.getInteraction()
-                        .getChannel()
-                        .flatMap(channel -> channel.createMessage(AccessCodeDetailsMessage.create(details)))
-                        .then()));
-        } catch (IllegalArgumentException ex) {
-            return Mono.error(new AppealException("This is not a valid case ID"));
-        }
+        if (details == null) return Mono.error(new AppealException("The provided access code is not valid"));
+        else
+            return event.createFollowup(AccessCodeDetailsMessage.create(details))
+                    .then();
+    }
+
+    private Mono<Void> handleRevokeCommand(ChatInputInteractionEvent event) {
+        ApplicationCommandInteractionOption option =
+                event.getOption("revoke").orElseThrow(() -> new IllegalStateException("This option is expected"));
+
+        String accessCode = getFieldFromCommandOption(option, "access_code");
+        EncryptionHelper.CaseAccessDetails details = EncryptionHelper.decryptCaseAccessCode(accessCode);
+
+        if (details == null) return Mono.error(new AppealException("The provided access code is not valid"));
+        else
+            return Mono.fromCallable(() -> {
+                        AccessCodeBlacklistEntity blacklistEntity = AccessCodeBlacklistEntity.builder()
+                                .accessCode(accessCode)
+                                .createdBy(
+                                        event.getInteraction().getUser().getId().asString())
+                                .build();
+                        return blacklistRepository.save(blacklistEntity);
+                    })
+                    .subscribeOn(Schedulers.boundedElastic())
+                    .then(event.createFollowup(
+                            GenericSuccessFollowUp.create("Access code has been revoked successfully")))
+                    .then();
     }
 
     private String getFieldFromCommandOption(ApplicationCommandInteractionOption option, String field)

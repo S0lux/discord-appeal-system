@@ -1,6 +1,7 @@
 package com.sopuro.appeal_system.commands.panel;
 
 import com.sopuro.appeal_system.commands.SlashCommand;
+import com.sopuro.appeal_system.components.messages.GenericSuccessFollowUp;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
 import com.sopuro.appeal_system.exceptions.appeal.MissingGuildContextException;
@@ -84,7 +85,7 @@ public class PanelCommandHandler implements SlashCommand {
                 .getChannelById(channelId)
                 .cast(TextChannel.class)
                 .flatMap(textChannel -> textChannel.createMessage(panelMessageSpec))
-                .then(event.editReply("Panel created successfully!"))
+                .then(event.createFollowup(GenericSuccessFollowUp.create("Panel has been created")))
                 .onErrorResume(error -> event.editReply("Failed to create panel: " + error.getMessage()))
                 .then();
     }

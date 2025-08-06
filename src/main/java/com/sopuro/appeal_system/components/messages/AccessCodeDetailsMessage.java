@@ -4,13 +4,11 @@ import com.sopuro.appeal_system.shared.utils.EncryptionHelper;
 import discord4j.common.util.TimestampFormat;
 import discord4j.core.object.component.Container;
 import discord4j.core.object.component.TextDisplay;
-import discord4j.core.object.entity.Message;
-import discord4j.core.spec.MessageCreateSpec;
+import discord4j.core.spec.InteractionFollowupCreateSpec;
 
 public class AccessCodeDetailsMessage {
-    public static MessageCreateSpec create(EncryptionHelper.CaseAccessDetails accessDetails) {
-        return MessageCreateSpec.create()
-                .withFlags(Message.Flag.IS_COMPONENTS_V2)
+    public static InteractionFollowupCreateSpec create(EncryptionHelper.CaseAccessDetails accessDetails) {
+        return InteractionFollowupCreateSpec.create()
                 .withComponents(Container.of(
                         TextDisplay.of("## :ledger:  ACCESS DETAILS"),
                         TextDisplay.of("**Case ID:** " + accessDetails.caseId()),

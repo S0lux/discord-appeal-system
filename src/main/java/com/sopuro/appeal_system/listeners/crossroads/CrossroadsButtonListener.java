@@ -2,10 +2,9 @@ package com.sopuro.appeal_system.listeners.crossroads;
 
 import com.sopuro.appeal_system.clients.opencloud.OpenCloudClient;
 import com.sopuro.appeal_system.clients.rover.RoverClient;
-import com.sopuro.appeal_system.clients.rover.dtos.DiscordToRobloxDto;
 import com.sopuro.appeal_system.commands.panel.PanelCommandHandler;
 import com.sopuro.appeal_system.components.menus.MenuAppealDiscord;
-import com.sopuro.appeal_system.components.messages.GenericErrorMessageEmbed;
+import com.sopuro.appeal_system.components.messages.GenericErrorFollowUp;
 import com.sopuro.appeal_system.components.modals.GameAppealModal;
 import com.sopuro.appeal_system.configs.AppealSystemConfig;
 import com.sopuro.appeal_system.dtos.GameConfigDto;
@@ -13,11 +12,8 @@ import com.sopuro.appeal_system.entities.GuildConfigEntity;
 import com.sopuro.appeal_system.exceptions.AppealException;
 import com.sopuro.appeal_system.exceptions.appeal.AppealDisabledException;
 import com.sopuro.appeal_system.exceptions.appeal.MissingGuildContextException;
-import com.sopuro.appeal_system.exceptions.appeal.UserIsNotRobloxBannedException;
 import com.sopuro.appeal_system.repositories.GuildConfigRepository;
 import com.sopuro.appeal_system.shared.enums.GuildConfig;
-import com.sopuro.appeal_system.shared.enums.ServerType;
-import com.sopuro.appeal_system.shared.utils.TokenHelper;
 import discord4j.common.util.Snowflake;
 import discord4j.core.GatewayDiscordClient;
 import discord4j.core.event.domain.interaction.ButtonInteractionEvent;
@@ -26,7 +22,6 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.HttpClientErrorException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -186,11 +181,6 @@ public class CrossroadsButtonListener {
     }
 
     private Mono<Void> replyWithError(ButtonInteractionEvent event, String message) {
-        return event.editReply(GenericErrorMessageEmbed.create(message))
-                .onErrorResume(replyError -> {
-                    log.error("Failed to send error reply to user {}: {}", getUserInfo(event), replyError.getMessage());
-                    return Mono.empty();
-                })
-                .then();
+        return event.createFollowup(GenericErrorFollowUp.create(message, true)).then();
     }
 }

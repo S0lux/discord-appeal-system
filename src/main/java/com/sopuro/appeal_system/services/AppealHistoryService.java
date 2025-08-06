@@ -1,6 +1,8 @@
 package com.sopuro.appeal_system.services;
 
+import com.sopuro.appeal_system.entities.AccessCodeBlacklistEntity;
 import com.sopuro.appeal_system.entities.CaseEntity;
+import com.sopuro.appeal_system.repositories.AccessCodeBlacklistRepository;
 import com.sopuro.appeal_system.repositories.CaseRepository;
 import com.sopuro.appeal_system.shared.utils.EncryptionHelper;
 import lombok.RequiredArgsConstructor;
@@ -15,8 +17,14 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AppealHistoryService {
     private final CaseRepository caseRepository;
+    private final AccessCodeBlacklistRepository blacklistRepository;
 
     public Optional<CaseEntity> retrieveCaseByAccessCode(String accessCode) {
+        // Check if code is blacklisted
+        Optional<AccessCodeBlacklistEntity> blacklistEntity = blacklistRepository.findByAccessCode(accessCode);
+        if (blacklistEntity.isPresent()) return Optional.empty();
+
+        // Start access code decoding process
         EncryptionHelper.CaseAccessDetails details = EncryptionHelper.decryptCaseAccessCode(accessCode);
         if (details == null) return Optional.empty();
 

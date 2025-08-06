@@ -21,7 +21,7 @@ public class CaseLogDirectMessage {
         return MessageCreateSpec.create()
                 .withEmbeds(EmbedCreateSpec.create()
                         .withColor(caseEntity.getAppealVerdict() == AppealVerdict.ACCEPTED ? Color.GREEN : Color.RED)
-                        .withTitle("Case closed")
+                        .withTitle("Case Closed")
                         .withDescription(
                                 ":warning: **IMPORTANT** :warning:\n* **Do not** share your case details with anyone that is not an appeal staff.\n* If you have to share your case details with an appeal staff, **only share the ID of your case.**\n* Intentional leaking of your appeal will result in negative consequences.")
                         .withFields(
