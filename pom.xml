@@ -10,7 +10,7 @@
     </parent>
     <groupId>com.sopuro</groupId>
     <artifactId>appeal-system</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0-RELEASE</version>
     <name>appeal-system</name>
     <description>A custom Discord appeal management solution for Empire Clash</description>
     <url/>
