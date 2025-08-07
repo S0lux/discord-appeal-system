@@ -16,6 +16,7 @@ public class RoleOverwrites {
                 Permission.VIEW_CHANNEL,
                 Permission.SEND_MESSAGES,
                 Permission.READ_MESSAGE_HISTORY,
+                Permission.USE_APPLICATION_COMMANDS,
                 Permission.ADD_REACTIONS,
                 Permission.ATTACH_FILES);
         public static final PermissionSet CLOSED_PERMISSIONS = PermissionSet.of(
