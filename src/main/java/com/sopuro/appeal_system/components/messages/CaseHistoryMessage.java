@@ -15,15 +15,15 @@ public class CaseHistoryMessage {
 
     public static MessageCreateSpec create(List<CaseEntity> caseEntities, String robloxId, String robloxUsername) {
         Container container = Container.of(
-                TextDisplay.of("# :card_box:  USER HISTORY"),
+                TextDisplay.of("# :card_box:  APPEAL HISTORY"),
                 TextDisplay.of(
-                        "-# Displaying 10 most recent cases for " + robloxUsername + " (Roblox ID: " + robloxId + ")"),
+                        "-# Displaying 10 most recent appeals for " + robloxUsername + " (Roblox ID: " + robloxId + ")"),
                 Separator.of());
 
         List<TextDisplay> textDisplays = new ArrayList<>();
 
         if (caseEntities.isEmpty()) {
-            textDisplays.add(TextDisplay.of("- No cases found for this user."));
+            textDisplays.add(TextDisplay.of("- No appeal found for this user."));
         } else {
             caseEntities.stream().limit(10).forEach(caseEntity -> {
                 String caseInfo = String.format(

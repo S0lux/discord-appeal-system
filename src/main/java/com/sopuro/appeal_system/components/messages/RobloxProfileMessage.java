@@ -24,7 +24,6 @@ public class RobloxProfileMessage {
                                 TextDisplay.of("**Display Name:** " + robloxProfileDto.displayName())),
                         Separator.of(),
                         TextDisplay.of("**Premium:** " + (robloxProfileDto.premium() ? ":white_check_mark:" : ":x:")),
-                        TextDisplay.of("**ID Verified:** " + (robloxProfileDto.idVerified() ? ":white_check_mark:" : ":x:")),
                         TextDisplay.of("**Account Creation Time:** " + TimestampFormat.LONG_DATE.format(robloxProfileDto.createTime())),
                         Separator.of(),
                         ActionRow.of(
