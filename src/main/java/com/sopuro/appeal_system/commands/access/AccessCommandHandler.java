@@ -43,7 +43,7 @@ public class AccessCommandHandler implements SlashCommand {
 
     @Override
     public String getName() {
-        return "code";
+        return "access";
     }
 
     @Override
