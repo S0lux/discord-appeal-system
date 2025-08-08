@@ -39,6 +39,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.function.Tuple2;
+import reactor.util.function.Tuples;
 
 import java.time.Instant;
 import java.util.List;
@@ -117,14 +118,15 @@ public class VerdictCommandHandler implements SlashCommand {
                                                                 CaseLogMessage.create(updatedCase, profile, avatar))))
                                         .then(event.createFollowup(
                                                 GenericSuccessFollowUp.create("Verdict has been applied")))
-                                        .thenReturn(updatedCase);
+                                        .thenReturn(Tuples.of(updatedCase, profile));
                             });
                 })
-                .flatMap(caseEntity -> Mono.when(
+                .flatMap(tuple -> Mono.when(
                         moveCaseChannelToClosed(
-                                Snowflake.of(caseEntity.getChannelId()),
-                                Snowflake.of(caseEntity.getAppealerDiscordId())),
-                        sendCaseLogDM(Snowflake.of(caseEntity.getAppealerDiscordId()), caseEntity)))
+                                Snowflake.of(tuple.getT1().getChannelId()),
+                                Snowflake.of(tuple.getT1().getAppealerDiscordId())),
+                        sendCaseLogDM(Snowflake.of(tuple.getT1().getAppealerDiscordId()), tuple.getT1()),
+                        updateChannelName(tuple.getT1(), tuple.getT2())))
                 .then();
     }
 
@@ -217,6 +219,29 @@ public class VerdictCommandHandler implements SlashCommand {
         }
 
         return Mono.error(new AppealException("Unknown verdict handling case"));
+    }
+
+    private Mono<Void> updateChannelName(CaseEntity caseEntity, RobloxProfileDto robloxProfile) {
+        String prefix =
+                switch (caseEntity.getAppealVerdict()) {
+                    case ACCEPTED -> "\uD83D\uDFE2";
+                    case REJECTED -> "\uD83D\uDD34";
+                    case PENDING -> "\uD83D\uDFE1";
+                };
+
+        String updatedName = String.format(
+                "%s-%s-%s-%s",
+                prefix,
+                caseEntity.getAppealPlatform().name().toLowerCase(),
+                caseEntity.getPunishmentType().name().toLowerCase(),
+                robloxProfile.name());
+
+        return gatewayDiscordClient
+                .getChannelById(Snowflake.of(caseEntity.getChannelId()))
+                .onErrorResume(ClientException.isStatusCode(404), ignored -> Mono.empty())
+                .cast(TextChannel.class)
+                .flatMap(channel -> channel.edit(TextChannelEditSpec.create().withName(updatedName)))
+                .then();
     }
 
     private Mono<Void> unbanFromRover(String guildId, String robloxId, String gameName) {
@@ -333,7 +358,9 @@ public class VerdictCommandHandler implements SlashCommand {
                 .flatMap(user -> user.getPrivateChannel()
                         .flatMap(privateChannel ->
                                 privateChannel.createMessage(CaseLogDirectMessage.create(caseEntity, domainName))))
-                .onErrorResume(ClientException.isStatusCode(403), ignored -> Mono.empty()) // Ignore error if user DM is turned off
+                .onErrorResume(
+                        ClientException.isStatusCode(403),
+                        ignored -> Mono.empty()) // Ignore error if user DM is turned off
                 .then();
     }
 

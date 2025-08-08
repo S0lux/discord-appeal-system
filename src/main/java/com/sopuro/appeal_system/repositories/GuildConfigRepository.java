@@ -6,6 +6,7 @@ import com.sopuro.appeal_system.shared.enums.GuildConfig;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
+import java.util.concurrent.Callable;
 
 public interface GuildConfigRepository extends JpaRepository<GuildConfigEntity, GuildConfigId> {
     Optional<GuildConfigEntity> findByGuildIdAndConfigKey(String guildId, GuildConfig configKey);

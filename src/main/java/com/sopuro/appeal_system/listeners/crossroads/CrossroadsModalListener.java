@@ -56,7 +56,7 @@ import java.util.function.Function;
 public class CrossroadsModalListener {
 
     private static final Duration OPERATION_TIMEOUT = Duration.ofSeconds(30);
-    private static final String CHANNEL_NAME_FORMAT = "%s-%s-%s";
+    private static final String CHANNEL_NAME_FORMAT = "\uD83D\uDFE1-%s-%s";
     private static final String CHANNEL_TOPIC_FORMAT = "Appeal channel for **%s** (%s)\nAppealed at: %s";
     private static final String SUCCESS_MESSAGE_FORMAT =
             "<@%s> Your appeal has been successfully submitted! Please check the channel <#%s> for details.";
@@ -243,7 +243,7 @@ public class CrossroadsModalListener {
     private Mono<Snowflake> createAppealChannel(AppealSubmissionContextFactory.AppealSubmissionContext context, String robloxUsername) {
         final String channelName = generateChannelName(context, robloxUsername);
 
-        return getAppealsCategoryId(context.guildId())
+        return getAppealsCategoryId(context.guildId(), context.platform())
                 .flatMap(categoryId -> createTextChannelWithPermissions(context, channelName, categoryId));
     }
 
@@ -254,14 +254,19 @@ public class CrossroadsModalListener {
 
         return String.format(
                 CHANNEL_NAME_FORMAT,
-                context.platform().name().toLowerCase(),
                 context.punishmentType().name().toLowerCase(),
                 username);
     }
 
-    private Mono<String> getAppealsCategoryId(String guildId) {
+    private Mono<String> getAppealsCategoryId(String guildId, AppealPlatform platform) {
+        GuildConfig categoryConfigKey = switch (platform) {
+            case DISCORD -> GuildConfig.OPEN_APPEALS_DISCORD_CATEGORY_ID;
+            case GAME -> GuildConfig.OPEN_APPEALS_GAME_CATEGORY_ID;
+            default -> throw new IllegalArgumentException();
+        };
+
         return Mono.fromCallable(() -> guildConfigRepository.findByGuildIdAndConfigKey(
-                        guildId, GuildConfig.OPEN_APPEALS_CATEGORY_ID))
+                        guildId, categoryConfigKey))
                 .subscribeOn(Schedulers.boundedElastic())
                 .flatMap(this::validateGuildConfig);
     }
