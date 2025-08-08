@@ -19,6 +19,7 @@ import discord4j.core.object.command.ApplicationCommandInteractionOption;
 import discord4j.core.object.command.ApplicationCommandInteractionOptionValue;
 import discord4j.core.object.entity.User;
 import discord4j.core.spec.MessageCreateSpec;
+import discord4j.rest.http.client.ClientException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -146,6 +147,10 @@ public class AccessCommandHandler implements SlashCommand {
         return gateway.getUserById(userId)
                 .flatMap(User::getPrivateChannel)
                 .flatMap(channel -> channel.createMessage(caseAccessDetails))
+                .onErrorResume(
+                        ClientException.isStatusCode(403),
+                        ignored -> Mono.error(new AppealException(
+                                "Your DM is disabled. Please enable for your DM to receive access details.")))
                 .then();
     }
 }

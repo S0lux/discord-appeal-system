@@ -333,6 +333,7 @@ public class VerdictCommandHandler implements SlashCommand {
                 .flatMap(user -> user.getPrivateChannel()
                         .flatMap(privateChannel ->
                                 privateChannel.createMessage(CaseLogDirectMessage.create(caseEntity, domainName))))
+                .onErrorResume(ClientException.isStatusCode(403), ignored -> Mono.empty()) // Ignore error if user DM is turned off
                 .then();
     }
 
